@@ -1,3 +1,5 @@
+from pathlib import Path
+
 """Acceptance examples for reports built from saved evidence."""
 
 import numpy as np
@@ -176,6 +178,16 @@ def test_rendered_report_carries_validation_and_both_independent_findings(tmp_pa
         "C4",
     ):
         assert phrase.casefold() in report.casefold()
-    assert (tmp_path / "summary" / "verdict.json").is_file()
+    import re
+
+    readme_link = re.search(r"\[reproduction instructions\]\(([^)]+)\)", report).group(
+        1
+    )
+    assert (output.parent / readme_link).resolve() == Path(__file__).resolve().parents[
+        1
+    ] / "README.md"
+    assert not (
+        tmp_path / "summary" / "verdict.json"
+    ).exists()  # publication follows independent audit
     assert (tmp_path / "summary" / "window-diagnostics.csv").is_file()
     assert (tmp_path / "plots" / "trace-C5.png").is_file()

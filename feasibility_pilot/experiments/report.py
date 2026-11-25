@@ -2,7 +2,6 @@
 
 from pathlib import Path
 import csv
-import json
 import os
 
 import numpy as np
@@ -198,11 +197,6 @@ def _write_csv(path, rows):
         writer = csv.DictWriter(file, fieldnames=rows[0].keys(), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
-
-
-def _write_json(path, obj):
-    contents = json.dumps(obj, indent=2, sort_keys=True, allow_nan=False) + "\n"
-    path.write_text(contents)
 
 
 def _label(family, arm):
@@ -601,13 +595,25 @@ def _diagnostic_sections(c, summary, arms, db, latencies):
     ]
 
 
-def generate(c, out_dir, plots_dir, report_path, validation, roots, summary):
+def generate(
+    c,
+    out_dir,
+    plots_dir,
+    report_path,
+    validation,
+    roots,
+    summary,
+    *,
+    summary_dir=None,
+    final_plots=None,
+    final_report=None,
+):
     """Write deterministic tables, plots and the scoped scientific verdict."""
     from experiments.figures import plot_risks
 
     out_dir, plots_dir, report_path = map(Path, (out_dir, plots_dir, report_path))
     plots_dir.mkdir(parents=True, exist_ok=True)
-    summary_dir = out_dir / "summary"
+    summary_dir = summary_dir or out_dir / "summary"
     summary_dir.mkdir(parents=True, exist_ok=True)
     all_roots = {"C1": [r["arms"] for r in validation["placebo"]], **roots}
     arms, windows, db, latencies = _collect(c, out_dir, plots_dir, all_roots)
@@ -619,9 +625,10 @@ def generate(c, out_dir, plots_dir, report_path, validation, roots, summary):
         ("latency-by-route", latencies),
     ):
         _write_csv(summary_dir / (name + ".csv"), rows)
-    _write_json(summary_dir / "verdict.json", summary)
-    plots = _relative(plots_dir, report_path.parent)
-    results = _relative(out_dir, report_path.parent)
+    link_parent = (final_report or report_path).parent
+    plots = _relative(final_plots or plots_dir, link_parent)
+    results = _relative(out_dir, link_parent)
+    readme = _relative(Path(__file__).resolve().parents[1] / "README.md", link_parent)
     sections = [
         *_findings_section(c, summary, validation),
         *_validation_section(validation),
@@ -658,7 +665,7 @@ def generate(c, out_dir, plots_dir, report_path, validation, roots, summary):
             f"Master seed {c.seed}. The independent sampling unit is a root history. The exact config, source and environment "
             f"are recorded in the [run manifest]({results}/manifest.json). The [machine-readable verdict]({results}/summary/verdict.json) "
             f"retains full precision. The [window diagnostics]({results}/summary/window-diagnostics.csv) retain pooled denominators "
-            f"and deadline misses by branch and window. See the [reproduction instructions](README.md) and "
+            f"and deadline misses by branch and window. See the [reproduction instructions]({readme}) and "
             f"[independent reconstruction]({results}/summary/independent-audit.json).",
         ]
     )
