@@ -9,7 +9,12 @@ from telemetry_sufficiency.custody import file_hash, save
 
 from telemetry_sufficiency.archive import protect_destination
 
-from .development import model_digest, physical_digest, study_source_digest
+from .development import (
+    model_digest,
+    physical_digest,
+    protocol_digest,
+    study_source_digest,
+)
 
 
 def _diagnostic_plot(folds, dest):
@@ -73,6 +78,14 @@ def summarise(teacher, sequential, phase, output):
         r.get("model_digest") != expected_model for r in (teacher_summary, sequence)
     ):
         raise ValueError("Unbound or stale producing model in development validation")
+    protocols = {s: protocol_digest(s) for s in ("teacher", "sequential", "phase")}
+    for stage, receipt in (
+        ("teacher", teacher_summary),
+        ("sequential", sequence),
+        ("phase", phase_report),
+    ):
+        if receipt.get("protocol_digest") != protocols[stage]:
+            raise ValueError(f"Unbound or stale {stage} development protocol")
     paths = dict(
         teacher=teacher / "summary.json",
         sequential=sequential / "sequential.json",
@@ -80,6 +93,11 @@ def summarise(teacher, sequential, phase, output):
     )
     for fold in range(5):
         a, b = teacher / f"fold-{fold}.json", sequential / f"fold-{fold}.json"
+        for path, summary in ((a, teacher_summary), (b, sequence)):
+            if summary.get("fold_evidence", {}).get(str(fold)) != file_hash(path):
+                raise ValueError(
+                    f"{path.parent.name} fold {fold} digest differs from producer receipt"
+                )
         teacher_fold, sequential_fold = (
             json.loads(a.read_text()),
             json.loads(b.read_text()),
@@ -89,6 +107,12 @@ def summarise(teacher, sequential, phase, output):
             for r in (teacher_fold, sequential_fold)
         ):
             raise ValueError(f"Unbound or stale producing model in fold {fold}")
+        for stage, receipt in (
+            ("teacher", teacher_fold),
+            ("sequential", sequential_fold),
+        ):
+            if receipt.get("protocol_digest") != protocols[stage]:
+                raise ValueError(f"Unbound or stale {stage} protocol in fold {fold}")
         if teacher_fold["training_digest"] != sequential_fold["training_digest"]:
             raise ValueError(
                 "held-out teacher and sequential fits have different training roots"
@@ -108,6 +132,7 @@ def summarise(teacher, sequential, phase, output):
         status=status,
         model_digest=teacher_summary["model_digest"],
         physical_digest=phase_report["physical_digest"],
+        protocol_digests=protocols,
         source_digest=study_source_digest(),
         evidence_digests={
             os.path.relpath(p, output): file_hash(p) for p in paths.values()
