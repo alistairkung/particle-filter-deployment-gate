@@ -169,3 +169,38 @@ def test_common_public_history_gives_identical_posteriors_and_action_forecasts()
         forecasts.append(forecast(posterior, closure, pairs=3, seed=33))
     assert posteriors[0] == posteriors[1]
     assert forecasts[0] == forecasts[1]
+
+
+def test_fitted_forecast_runs_with_private_plant_and_evidence_access_denied(
+    monkeypatch,
+):
+    """Fit on separate development roots; deny the forecast all evaluator adapters."""
+    import builtins
+    from pathlib import Path
+    from particle_filter.development import training_samples
+    from particle_filter.development_replay import replay_development
+    from particle_filter.emissions import fit_emission
+    from particle_filter.forecast import forecast
+    from particle_filter.inference import infer
+    from particle_filter.physical import Closure
+    from telemetry_sufficiency import CONDITIONS, custody, plant
+
+    histories = [replay_development(z, i) for z in CONDITIONS for i in range(3)]
+    model = fit_emission(list(training_samples(histories)))
+    closure = Closure((t.regime, t.end) for root in histories for t in root)
+    observed = tuple(t.reading for t in replay_development("reference", 15))
+
+    def denied(*args, **kwargs):
+        raise AssertionError("Forecaster crossed the evaluator boundary")
+
+    with monkeypatch.context() as guard:
+        guard.setattr(plant, "raw_tape", denied)
+        guard.setattr(plant, "replay", denied)
+        guard.setattr(plant, "simulate_root", denied)
+        guard.setattr(custody, "read", denied)
+        guard.setattr(builtins, "open", denied)
+        guard.setattr(Path, "open", denied)
+        posterior = infer(observed, closure, model, particles=12, seed=7654)
+        result = forecast(posterior, closure, pairs=2, seed=567)
+    assert result.pairs == 2
+    assert result.delta == result.promote - result.hold
