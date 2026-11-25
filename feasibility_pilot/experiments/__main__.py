@@ -42,9 +42,13 @@ def identity(config_path):
         "experiments/observations.py",
         "experiments/runner.py",
         "experiments/validation.py",
+        "experiments/workload.py",
     ]
     physics += sorted(
         str(p.relative_to(BASE)) for p in (BASE / "simulator").glob("*.py")
+    )
+    physics += sorted(
+        "../simulator/" + p.name for p in (BASE.parent / "simulator").glob("*.py")
     )
     files = {f: digest(BASE / f) for f in physics}
     files["config"] = digest(config_path)
@@ -58,7 +62,8 @@ def source_files():
         for directory in ("experiments", "simulator", "tests")
         for p in (BASE / directory).glob("*.py")
     ]
-    return {str(p.relative_to(BASE)): digest(p) for p in sorted(sources)}
+    sources += sorted((BASE.parent / "simulator").glob("*.py"))
+    return {os.path.relpath(p, BASE): digest(p) for p in sorted(sources)}
 
 
 def git(*args):
@@ -356,11 +361,16 @@ def main():
                 "Use a separate output directory to reproduce the archived experiment"
             )
         manifest = load_json(out / "manifest.json")
-        signature, _ = identity(config_path)
-        if signature != manifest["signature"]:
-            raise ValueError(
-                "Scientific source or configuration differs from the archived pilot"
-            )
+        # The archived rows bind the historical implementation and frozen configuration.
+        signature = manifest["signature"]
+        files = manifest["input_digests"]
+        if (
+            signature
+            != hashlib.sha256(json.dumps(files, sort_keys=True).encode()).hexdigest()
+            or files["config"] != digest(config_path)
+            or digest(config_path) != digest(BASE / "configs/pilot.toml")
+        ):
+            raise ValueError("Invalid archived pilot signature or configuration")
         render(read_config(config_path), out, signature, args, manifest, archived=True)
         return
     require_output(out)

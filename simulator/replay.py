@@ -28,7 +28,13 @@ class ObservedModel(Model):
 
 
 def replay_prefix(
-    config: PlantConfig, prefix, share, *, passive=True, deliveries=None, ack_change=None
+    config: PlantConfig,
+    prefix,
+    share,
+    *,
+    passive=True,
+    deliveries=None,
+    ack_change=None,
 ) -> tuple[Model, tuple[Reading, ...]]:
     """Build a fresh plant through zero and an immutable, available-at-zero history.
 
@@ -37,7 +43,8 @@ def replay_prefix(
     """
     if -config.warmup * SECOND != START:
         raise ValueError("Observed replay requires the v1 sixty-second prefix")
-    if any(not START < row[0] <= 0 for row in prefix):
+    routed = admissions(prefix, share, config)
+    if any(not START < row[0] <= 0 for row in routed):
         raise ValueError("Prefix admissions must fall within the pre-decision interval")
     ends = range(START + INTERVAL, 1, INTERVAL)
     cuts = set(ends)
@@ -50,7 +57,7 @@ def replay_prefix(
     collector = Collector() if passive else None
     model = ObservedModel(config, collector) if passive else Model(config, START)
     feed = DeliveryLog()
-    model.schedule(admissions(prefix, share, config))
+    model.schedule(routed)
     for end in sorted(cuts):
         model.advance(end)
         if collector is not None and end in ends:
@@ -66,7 +73,10 @@ def replay_prefix(
 def run_future(model, future, share):
     """Continue this evaluator-owned cut to its horizon using the supplied primitives."""
     horizon = model.c.horizon * SECOND
-    if model.env.now != 0 or any(not 0 < row[0] <= horizon for row in future):
-        raise ValueError("Future replay requires a decision cut and post-cut admissions")
-    model.schedule(admissions(future, share, model.c))
+    routed = admissions(future, share, model.c)
+    if model.env.now != 0 or any(not 0 < row[0] <= horizon for row in routed):
+        raise ValueError(
+            "Future replay requires a decision cut and post-cut admissions"
+        )
+    model.schedule(routed)
     model.advance(horizon)

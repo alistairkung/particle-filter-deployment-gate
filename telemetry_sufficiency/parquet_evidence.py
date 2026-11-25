@@ -7,7 +7,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from . import custody as c
-from .observation import parse_history
+from simulator.observations import parse_history
 
 INT64, FLOAT64, STRING, BOOL = pa.int64(), pa.float64(), pa.string(), pa.bool_()
 FLOAT_VECTOR = pa.list_(FLOAT64)

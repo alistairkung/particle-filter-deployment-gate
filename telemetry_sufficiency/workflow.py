@@ -26,6 +26,7 @@ def study_contract():
         PILOT / "requirements.lock",
         HERE.parent / "requirements-storage.lock",
     ]
+    source += sorted((HERE.parent / "simulator").glob("*.py"))
     source += sorted((PILOT / "simulator").glob("*.py")) + sorted(
         (PILOT / "experiments").glob("*.py")
     )

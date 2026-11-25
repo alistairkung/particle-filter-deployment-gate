@@ -29,14 +29,22 @@ def arrivals(generator, rate, seconds):
 
 
 def primitive_tape(
-    config: PlantConfig, root_key, phase, *, reference_rate, extra_rate=0, extra_after_ns=None
+    config: PlantConfig,
+    root_key,
+    phase,
+    *,
+    reference_rate,
+    extra_rate=0,
+    extra_after_ns=None,
 ):
     """Key every draw by seed, root components, phase and source; keep stable tie order."""
     if phase not in ("prefix", "future"):
         raise ValueError("Unknown tape phase")
 
+    key = (config.seed, *root_key, phase)
+
     def stream(name):
-        return rng(config.seed, *root_key, phase, name)
+        return rng(*key, name)
 
     prefix = phase == "prefix"
     seconds = config.warmup if prefix else config.horizon
@@ -56,7 +64,11 @@ def primitive_tape(
         sizes = np.maximum(1, np.rint(draws)).astype(np.int64).tolist()
         for i, (t, size) in enumerate(zip(times, sizes)):
             tick = offset + t
-            if source == "extra" and extra_after_ns is not None and tick <= extra_after_ns:
+            if (
+                source == "extra"
+                and extra_after_ns is not None
+                and tick <= extra_after_ns
+            ):
                 continue
             rows.append((tick, source, -i - 1 if prefix else i, size))
     # Python's stable sort keeps application/reference/extra ordering at exact ties.
@@ -65,6 +77,8 @@ def primitive_tape(
 
 def admissions(tape, share, config: PlantConfig):
     """Map each request's shared primitive draw to its routed atomic write demand."""
+    if not 0 <= share <= 1:
+        raise ValueError("Routing share must be in [0, 1]")
     rows = []
     for tick, source, identity, draw, *extra in tape:
         if source == "write":

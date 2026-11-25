@@ -6,5 +6,5 @@ from pathlib import Path
 CONDITIONS = ("reference", "contention", "publisher")
 
 PILOT = Path(__file__).resolve().parents[1] / "feasibility_pilot"
-# The frozen simulator imports experiments and simulator as top-level packages.
+# Historical pilot scoring and the independent audit import experiments.*.
 sys.path.append(str(PILOT))

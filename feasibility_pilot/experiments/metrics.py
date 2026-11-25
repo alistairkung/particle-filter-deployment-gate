@@ -3,7 +3,7 @@
 import numpy as np
 from scipy.stats import beta
 
-from simulator.inputs import rng
+from simulator.workload import rng
 
 
 def cp_lower(count, n, tail):
