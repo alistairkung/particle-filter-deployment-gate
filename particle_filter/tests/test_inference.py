@@ -204,3 +204,15 @@ def test_fitted_forecast_runs_with_private_plant_and_evidence_access_denied(
         result = forecast(posterior, closure, pairs=2, seed=567)
     assert result.pairs == 2
     assert result.delta == result.promote - result.hold
+
+
+def test_systematic_resampling_upper_roundoff_stays_within_positive_support():
+    from particle_filter.inference import systematic_ancestors
+
+    # The last grid point rounds to 1 in float64 before the open-end correction.
+    assert list(systematic_ancestors([0.5, 0.5, 0, 0], np.nextafter(1.0, 0.0))) == [
+        0,
+        0,
+        1,
+        1,
+    ]

@@ -44,8 +44,11 @@ def systematic_ancestors(weights, unit_offset):
         raise ValueError("Expected nonnegative normalised weights")
     cumulative = np.cumsum(weights)
     cumulative /= cumulative[-1]
-    points = (np.arange(len(weights)) + unit_offset) / len(weights)
-    return np.searchsorted(cumulative, points, side="right")
+    # Count grid points below each CDF boundary. Keeping the offset separate
+    # avoids rounding the final point of the half-open grid up to one.
+    whole, fraction = np.divmod(cumulative * len(weights), 1)
+    below = whole.astype(np.intp) + (fraction > unit_offset)
+    return np.repeat(np.arange(len(weights)), np.diff(below, prepend=0))
 
 
 @dataclass(frozen=True)
