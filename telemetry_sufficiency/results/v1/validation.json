@@ -1,0 +1,1 @@
+{"command":["/Users/alistair/projects/particle-filter-deployment-gate/feasibility_pilot/.venv/bin/python","-m","pytest","-q","/Users/alistair/projects/particle-filter-deployment-gate/telemetry_sufficiency/tests"],"output":"....................................................................     [100%]\n68 passed in 3.41s\n","passed":true}
