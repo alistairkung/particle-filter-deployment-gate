@@ -1,4 +1,5 @@
 """SimPy event model of one non-preemptive, capacity-one FIFO server."""
+
 from collections import deque
 from dataclasses import dataclass
 import hashlib
@@ -8,6 +9,7 @@ from experiments.config import MS
 WRITE, QUERY, CLAIM, MARK = range(4)
 KINDS = ("write", "query", "claim", "mark")
 
+
 class SerialDB:
     """Reserve consecutive service intervals in FIFO enqueue order.
 
@@ -15,6 +17,7 @@ class SerialDB:
     known exactly from the preceding visit's end. Only completion callbacks may
     commit a write, release an event to the publisher or change publisher phase.
     """
+
     def __init__(self, env):
         self.env = env
         self.available = env.now
@@ -27,8 +30,9 @@ class SerialDB:
         self.available = end
         self.visits.append((kind, identity, now, start, end))
         if complete is not None:
-            self.env.timeout(end-now).callbacks.append(complete)
+            self.env.timeout(end - now).callbacks.append(complete)
         return end
+
 
 @dataclass(slots=True)
 class Write:
@@ -40,6 +44,7 @@ class Write:
     claim: int | None = None
     ack: int | None = None
     mark: int | None = None
+
 
 class Model:
     def __init__(self, c, start, slow=False):
@@ -60,7 +65,7 @@ class Model:
             event._ok = True
             event._value = admission
             event.callbacks.append(self._admit)
-            self.env.schedule(event, priority=0, delay=tick-self.env.now)
+            self.env.schedule(event, priority=0, delay=tick - self.env.now)
 
     def _admit(self, event):
         kind, identity, work, java, *flags = event.value
@@ -111,13 +116,31 @@ class Model:
     def advance(self, tick):
         if tick < self.env.now:
             raise ValueError("Cannot move backwards")
-        self.env.timeout(tick-self.env.now)
+        self.env.timeout(tick - self.env.now)
         while self.env.peek() <= tick:
             self.env.step()
 
     def physical_digest(self, with_routes=False):
-        states = [(i, w.arrival, w.demand, w.commit, w.claim, w.ack, w.mark,
-                   w.java if with_routes else None) for i,w in self.writes.items()]
-        physical = (self.env.now, self.db.available, self.db.visits, states,
-                    list(self.pending), self.phase, self.ack_due)
+        states = [
+            (
+                i,
+                w.arrival,
+                w.demand,
+                w.commit,
+                w.claim,
+                w.ack,
+                w.mark,
+                w.java if with_routes else None,
+            )
+            for i, w in self.writes.items()
+        ]
+        physical = (
+            self.env.now,
+            self.db.available,
+            self.db.visits,
+            states,
+            list(self.pending),
+            self.phase,
+            self.ack_due,
+        )
         return hashlib.sha256(repr(physical).encode()).hexdigest()

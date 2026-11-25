@@ -56,13 +56,7 @@ def read_root(out, c, family, root, signature):
     return record["branches"]
 
 
-def compute_root(task):
-    c, out, family, root, signature = task
-    branch_path, sample_path = root_paths(out, family, root)
-    if branch_path.exists():
-        read_root(out, c, family, root, signature)
-        return family, root
-    branches, samples = run_root(c, family, root)
+def save_samples(sample_path, samples):
     arrays = {}
     for arm, (elapsed, java, censored) in samples.items():
         arrays.update(
@@ -73,13 +67,24 @@ def compute_root(task):
         np.savez_compressed(stream, **arrays)
         tmp = stream.name
     os.replace(tmp, sample_path)
+    return digest(sample_path)
+
+
+def compute_root(task):
+    c, out, family, root, signature = task
+    branch_path, sample_path = root_paths(out, family, root)
+    if branch_path.exists():
+        read_root(out, c, family, root, signature)
+        return family, root
+    branches, samples = run_root(c, family, root)
+    sample_digest = save_samples(sample_path, samples)
     save_json(
         branch_path,
         dict(
             family=family,
             root=root,
             signature=signature,
-            sample_digest=digest(sample_path),
+            sample_digest=sample_digest,
             branches=branches,
         ),
     )

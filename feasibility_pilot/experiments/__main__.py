@@ -161,7 +161,7 @@ def write_window_tables(out, roots):
                                 {k + "_" + key: value for key, value in data.items()}
                             )
                         if writer is None:
-                            writer = csv.DictWriter(stream, fieldnames=list(row))
+                            writer = csv.DictWriter(stream, fieldnames=list(row), lineterminator="\n")
                             writer.writeheader()
                         writer.writerow(row)
 

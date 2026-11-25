@@ -194,7 +194,7 @@ def _pp(x):
 
 def _write_csv(path, rows):
     with path.open("w", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=rows[0].keys())
+        writer = csv.DictWriter(file, fieldnames=rows[0].keys(), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -277,6 +277,12 @@ def _findings_section(c, summary, validation):
         f"{c.window} s window. Deadlines are {c.deadline_ms} ms from arrival. Absolute risks use "
         "independent histories as denominators. The historical four-nines availability target motivated the study. "
         "These results concern a synthetic latency endpoint.",
+        f"One non-preemptive FIFO DB serves both routes, background queries and the common outbox publisher. "
+        f"At {c.writes:g} writes/s the migration condition assigns a mean of {c.ruby_ms+c.insert_ms} ms of "
+        f"synchronous DB work to a Ruby write and {c.java_ms+c.insert_ms} ms to a Java write, including the "
+        f"same atomic insert. Promotion therefore adds "
+        f"{100*(c.load_fraction(c.promote,0)-c.load_fraction(c.hold,0)):.1f} percentage points of offered DB "
+        f"load at either background setting. These service costs represent a synthetic implementation difference.",
         _table(("Control", "Finding"), rows),
     ]
 
@@ -432,7 +438,9 @@ def _diagnostic_sections(c, summary, arms, db, latencies):
         c4["hold"]["breaches"] == c4["hold"]["n"]
         and c4["promote"]["breaches"] == c4["promote"]["n"]
     ):
-        c4_text = " Both branches breached in every sampled horizon. The binary endpoint saturated in this sample."
+        c4_text = (" Both branches breached in every sampled horizon. The binary endpoint saturated. "
+                   "All paired differences were zero, so every empirical bootstrap resample returned zero. "
+                   "This degenerate interval leaves the magnitude of additional waiting to the latency diagnostics.")
     elif min(c4["hold"]["risk"], c4["promote"]["risk"]) > 0.95:
         c4_text = " Both branch risks exceeded 95% in this sample, leaving little room for this endpoint to increase."
     totals = []
