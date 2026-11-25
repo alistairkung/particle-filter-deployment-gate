@@ -31,7 +31,7 @@ from .emission_diagnostics import (
     repeatable_discrepancies,
 )
 from ..forecast import forecast
-from ..inference import infer
+from ..filter import infer
 
 # Declared diagnostic settings. Convergence and method lock are separate stages.
 PARTICLES = 128

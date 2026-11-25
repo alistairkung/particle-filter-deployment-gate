@@ -10,7 +10,7 @@ from simulator.workload import rng
 from telemetry_sufficiency.custody import save
 
 from ..forecast import forecast
-from ..inference import infer
+from ..filter import infer
 
 
 @dataclass(frozen=True)

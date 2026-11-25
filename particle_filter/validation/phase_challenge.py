@@ -14,7 +14,7 @@ from .development import (
     replay_root,
 )
 from .development_replay import PhaseDiagnostic
-from ..physical import Closure, matched_pair, propagate
+from ..model.physical import Closure, matched_pair, propagate
 
 SEED = 413026193
 INTERVAL_REPEATS = 4

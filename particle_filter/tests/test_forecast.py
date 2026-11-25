@@ -12,9 +12,9 @@ def test_all_four_paired_cells_keep_a_negative_promotion_increment():
 
 
 def test_matched_forecast_reuses_draws_when_ablated_work_is_identical():
-    from particle_filter.inference import Posterior
+    from particle_filter.filter import Posterior
     from particle_filter.forecast import forecast
-    from particle_filter.physical import Boundary, Closure
+    from particle_filter.model.physical import Boundary, Closure
 
     posterior = Posterior(0, ("A",), (Boundary(),), (1.0,), None, ())
     full = forecast(posterior, Closure([]), pairs=5, seed=941)
@@ -32,9 +32,9 @@ def test_matched_forecast_reuses_draws_when_ablated_work_is_identical():
 
 def test_common_public_history_gives_identical_posteriors_and_action_forecasts():
     from dataclasses import replace
-    from particle_filter.inference import infer
+    from particle_filter.filter import infer
     from particle_filter.forecast import forecast
-    from particle_filter.physical import Closure
+    from particle_filter.model.physical import Closure
     from simulator.observations import START, INTERVAL, Reading
 
     first = Reading(START, START + INTERVAL, START + INTERVAL, 0, 0.0, 2.0, 0.08)
@@ -69,10 +69,10 @@ def test_fitted_forecast_runs_with_private_plant_and_evidence_access_denied(
     from pathlib import Path
     from particle_filter.validation.development import training_samples
     from particle_filter.validation.development_replay import replay_development
-    from particle_filter.emissions import fit_emission
+    from particle_filter.model.likelihood import fit_emission
     from particle_filter.forecast import forecast
-    from particle_filter.inference import infer
-    from particle_filter.physical import Closure
+    from particle_filter.filter import infer
+    from particle_filter.model.physical import Closure
     from telemetry_sufficiency import CONDITIONS, custody, plant
 
     histories = [replay_development(z, i) for z in CONDITIONS for i in range(3)]
@@ -100,7 +100,7 @@ def test_one_experiment_can_repeat_a_posterior_across_independent_forecast_seeds
     from types import SimpleNamespace
     from particle_filter.config import load_variant
     from particle_filter.experiment import predict_variants
-    from particle_filter.physical import Closure
+    from particle_filter.model.physical import Closure
 
     fit = SimpleNamespace(closure=Closure([]), likelihood=None)
     full = [load_variant("full")]

@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from simulator.observations import INTERVAL, START, Reading
-from particle_filter.emissions import Context, fit_emission
+from particle_filter.model.likelihood import Context, fit_emission
 
 
 def reading(start, pending, age, marks, delay):

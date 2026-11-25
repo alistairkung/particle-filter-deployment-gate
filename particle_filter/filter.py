@@ -1,4 +1,4 @@
-"""Time-causal bootstrap inference and matched action-risk forecasts."""
+"""Time-causal bootstrap particle filtering."""
 
 from dataclasses import dataclass
 import math
@@ -9,16 +9,7 @@ from simulator.config import SECOND
 from simulator.observations import INTERVAL, START, Reading, parse_history
 from simulator.workload import rng
 
-REGIMES = ("A", "B", "C")
-
-
-def transition_matrix(half_life):
-    if half_life not in (60, 120, 240):
-        raise ValueError(
-            "Expected a reviewed regime half-life of 60, 120 or 240 seconds"
-        )
-    q = -math.expm1(-math.log(2) * 5 / half_life)
-    return np.array(((1 - q, q / 2, q / 2), (q, 1 - q, 0), (q, 0, 1 - q)))
+from .model.regimes import REGIMES, transition_matrix
 
 
 def normalise_weights(log_mass):
@@ -93,8 +84,8 @@ def _advance_population(
     physics_rngs,
     closure_rngs,
 ):
-    from .emissions import Context
-    from .physical import propagate
+    from .model.likelihood import Context
+    from .model.physical import propagate
 
     fresh = prior is not None and prior.interval_end_ns == start
     ends, contexts, marks = [], [], []
@@ -140,7 +131,7 @@ def infer(
     if type(cutoff) is not int or cutoff not in range(START + INTERVAL, 1, INTERVAL):
         raise ValueError("Expected a five-second posterior boundary")
     available = parse_history(history, cutoff)
-    from .physical import Boundary
+    from .model.physical import Boundary
 
     transition = transition_matrix(half_life).cumsum(axis=1)
     transition[:, -1] = 1

@@ -68,7 +68,7 @@ def replay_root(root):
 
 
 def training_samples(replays):
-    from ..emissions import Context
+    from ..model.likelihood import Context
 
     for intervals in replays:
         previous = None
@@ -96,9 +96,9 @@ class FoldFit:
 
 
 def fit_fold(training, replays):
-    from ..emissions import fit_emission
+    from ..model.likelihood import fit_emission
     from .emission_diagnostics import training_thresholds
-    from ..physical import Closure
+    from ..model.physical import Closure
 
     samples = list(training_samples(replays[r.key] for r in training))
     donors = ((i.regime, i.end) for r in training for i in replays[r.key])
@@ -151,7 +151,7 @@ def _frozen_physical_files(repo):
         repo / "telemetry_sufficiency/__init__.py",
         repo / "telemetry_sufficiency/plant.py",
         repo / "telemetry_sufficiency/results/v1/development/oof.parquet",
-        repo / "particle_filter/physical.py",
+        repo / "particle_filter/model/physical.py",
         repo / "particle_filter/validation/development_replay.py",
     ]
 
@@ -184,10 +184,11 @@ def model_digest():
     repo = Path(__file__).resolve().parents[2]
     study = repo / "particle_filter"
     modules = [
-        "emissions",
-        "outbox_support",
-        "emission_families",
-        "inference",
+        "model/regimes",
+        "model/likelihood",
+        "model/outbox_support",
+        "model/emission_families",
+        "filter",
         "forecast",
         "config",
         "validation/development",

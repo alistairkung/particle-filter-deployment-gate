@@ -20,7 +20,7 @@ from .validation.development import (
     replay_root,
 )
 from .forecast import forecast
-from .inference import infer
+from .filter import infer
 
 
 def predict_variants(

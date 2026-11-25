@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from simulator.workload import rng
-from .inference import REGIMES
+from .model.regimes import REGIMES
 
 
 @dataclass(frozen=True)
@@ -35,7 +35,7 @@ class Forecast:
 
 def forecast(posterior, closure, *, pairs, seed, work_by_regime=None):
     """Forecast from a weighted cut. Ablation accepts development cut work in ns."""
-    from .physical import matched_pair
+    from .model.physical import matched_pair
 
     if posterior.cutoff != 0:
         raise ValueError("Action risk forecasts require the decision-cut posterior")

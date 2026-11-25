@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from particle_filter.inference import transition_matrix
+from particle_filter.model.regimes import transition_matrix
 
 
 @pytest.mark.parametrize("half_life", [60, 120, 240])
@@ -15,7 +15,7 @@ def test_allowed_graph_stationarity_and_departure_half_life(half_life):
 
 
 def test_two_update_posterior_agrees_with_enumeration():
-    from particle_filter.inference import normalise_weights
+    from particle_filter.filter import normalise_weights
 
     # Three fixed trajectories with equal prior mass. Their joint data masses
     # after two intervals are proportional to 1*3, 2*3 and 3*1.
@@ -30,14 +30,14 @@ def test_two_update_posterior_agrees_with_enumeration():
 
 
 def test_systematic_resampling_skips_zero_mass_at_boundaries():
-    from particle_filter.inference import systematic_ancestors
+    from particle_filter.filter import systematic_ancestors
 
     assert list(systematic_ancestors([0, 0.5, 0.25, 0.25], 0)) == [1, 1, 2, 3]
     assert list(systematic_ancestors([0.8, 0.2, 0, 0], 0.5)) == [0, 0, 0, 1]
 
 
 def test_inference_rejects_evaluator_fields_before_simulating():
-    from particle_filter.inference import infer
+    from particle_filter.filter import infer
     from simulator.observations import START, INTERVAL
 
     with pytest.raises(ValueError, match="public observation"):
@@ -52,7 +52,7 @@ def test_inference_rejects_evaluator_fields_before_simulating():
 
 
 def test_missing_first_reading_preserves_prior_and_generates_no_evidence():
-    from particle_filter.inference import infer
+    from particle_filter.filter import infer
     from simulator.observations import START, INTERVAL
 
     posterior = infer([], None, None, particles=96, seed=731, cutoff=START + INTERVAL)
@@ -66,8 +66,8 @@ def test_missing_first_reading_preserves_prior_and_generates_no_evidence():
 
 
 def test_delayed_reading_updates_its_resampled_ancestor_once():
-    from particle_filter.inference import infer
-    from particle_filter.physical import Closure
+    from particle_filter.filter import infer
+    from particle_filter.model.physical import Closure
     from simulator.observations import START, INTERVAL, Reading
 
     first, second, third = (START + n * INTERVAL for n in (1, 2, 3))
@@ -113,7 +113,7 @@ def test_delayed_reading_updates_its_resampled_ancestor_once():
 
 
 def test_systematic_resampling_upper_roundoff_stays_within_positive_support():
-    from particle_filter.inference import systematic_ancestors
+    from particle_filter.filter import systematic_ancestors
 
     # The last grid point rounds to 1 in float64 before the open-end correction.
     assert list(systematic_ancestors([0.5, 0.5, 0, 0], np.nextafter(1.0, 0.0))) == [
@@ -125,7 +125,7 @@ def test_systematic_resampling_upper_roundoff_stays_within_positive_support():
 
 
 def test_zero_weight_regime_is_extinct_before_resampling_threshold():
-    from particle_filter.inference import infer
+    from particle_filter.filter import infer
     from simulator.observations import START, INTERVAL, Reading
 
     class ExcludeSlowPublisher:
@@ -148,8 +148,8 @@ def test_zero_weight_regime_is_extinct_before_resampling_threshold():
 
 
 def test_second_observation_updates_an_enumerable_regime_forecast(monkeypatch):
-    from particle_filter import inference
-    from particle_filter.physical import Closure
+    from particle_filter import filter as inference
+    from particle_filter.model.physical import Closure
     from simulator.observations import START, INTERVAL, Reading
 
     # For this finite fixture, the fixed primitive tape draws four particles per

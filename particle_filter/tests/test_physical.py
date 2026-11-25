@@ -20,7 +20,7 @@ def test_interval_replay_matches_the_frozen_development_prefix():
 
 def test_reconstruction_preserves_admitted_claim_and_insert_costs_and_fifo_order():
     from numpy.random import default_rng
-    from particle_filter.physical import Boundary, Closure, Visit
+    from particle_filter.model.physical import Boundary, Closure, Visit
     from simulator.config import MS
     from simulator.model import CLAIM, QUERY, WRITE
 
@@ -34,7 +34,7 @@ def test_reconstruction_preserves_admitted_claim_and_insert_costs_and_fifo_order
 
 
 def test_reconstructed_work_finishes_before_new_claim_enters_and_inflight_ack_keeps_duration():
-    from particle_filter.physical import Boundary, Visit, replay_hypothesis
+    from particle_filter.model.physical import Boundary, Visit, replay_hypothesis
     from simulator.config import MS
     from simulator.model import MARK, WRITE
 
@@ -54,7 +54,7 @@ def test_reconstructed_work_finishes_before_new_claim_enters_and_inflight_ack_ke
 def test_phase_challenge_conditions_on_revealed_phase_with_same_work_and_pending():
     from numpy.random import default_rng
     from particle_filter.validation.development_replay import PhaseDiagnostic
-    from particle_filter.physical import Boundary, Visit
+    from particle_filter.model.physical import Boundary, Visit
     from simulator.config import MS
     from simulator.model import CLAIM, QUERY
 
@@ -70,7 +70,7 @@ def test_phase_challenge_conditions_on_revealed_phase_with_same_work_and_pending
 
 
 def test_restoring_each_publisher_phase_reproduces_frozen_action_endpoints_on_development_tapes():
-    from particle_filter.physical import anonymous_boundary, replay_hypothesis
+    from particle_filter.model.physical import anonymous_boundary, replay_hypothesis
     from telemetry_sufficiency.plant import CONFIG, endpoint, replay
 
     # The four development cuts cover idle, claim, mark and off-DB acknowledgement.
@@ -99,7 +99,7 @@ def test_restoring_each_publisher_phase_reproduces_frozen_action_endpoints_on_de
 
 def test_deadlines_at_window_edges_and_five_percent_breach_threshold():
     from dataclasses import replace
-    from particle_filter.physical import Boundary, CONFIG, replay_hypothesis
+    from particle_filter.model.physical import Boundary, CONFIG, replay_hypothesis
     from simulator.config import MS
 
     # First write is late by one tick; second commits at its deadline.
@@ -134,7 +134,7 @@ def test_deadlines_at_window_edges_and_five_percent_breach_threshold():
 def test_matched_forecast_is_reproducible_and_equal_route_work_matches_per_future():
     from dataclasses import replace
     from numpy.random import default_rng
-    from particle_filter.physical import Boundary, CONFIG, matched_pair
+    from particle_filter.model.physical import Boundary, CONFIG, matched_pair
 
     equal_work = replace(CONFIG, java_ms=CONFIG.ruby_ms)
     pair = matched_pair(Boundary(), "B", default_rng(44), config=equal_work)
@@ -144,7 +144,7 @@ def test_matched_forecast_is_reproducible_and_equal_route_work_matches_per_futur
 
 def test_sparse_cell_fallback_accounts_for_only_admitted_work_and_retains_known_wait():
     from numpy.random import default_rng
-    from particle_filter.physical import Boundary, Closure, Visit
+    from particle_filter.model.physical import Boundary, Closure, Visit
     from simulator.config import MS
     from simulator.model import CLAIM, QUERY
 

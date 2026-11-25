@@ -19,7 +19,7 @@ from .emission_families import (
     positive_nb_logmass,
 )
 
-REGIMES = ("A", "B", "C")
+from .regimes import REGIMES
 
 
 @dataclass(frozen=True, slots=True)

@@ -6,14 +6,15 @@ import numpy as np
 from scipy.special import betainc, expit, log_expit, logsumexp
 
 from simulator.observations import INTERVAL
-from ..emissions import REGIMES, _context_columns
-from ..emission_families import (
+from ..model.likelihood import _context_columns
+from ..model.regimes import REGIMES
+from ..model.emission_families import (
     mark_logmass,
     nb_log_parameters,
     positive_nb_logmass,
     normal_interval,
 )
-from ..outbox_support import (
+from ..model.outbox_support import (
     BAND_UPPER,
     mark_capacity,
     age_support,
