@@ -1,0 +1,7 @@
+# Fit integer counts and ordered timing bands to development replays
+
+Use the [counts-first joint likelihood](0010-counts-first-outbox-likelihood.md). Give the five-second mark count a discretised normal law on feasible integers, with a fitted centre and regime-specific spread. Preserve positive probability for physically possible zero-mark intervals. This tail relies on extrapolation because the retained development histories contain no such interval.
+
+Given marks and particle context, fit a hurdle negative binomial for ending pending count. Place the hurdle at the physical lower bound, using the immediately preceding boundary count when known. Fit ordered bands for oldest pending age, then for completed delay conditional on age band, counts and context. Enforce deterministic lifecycle cases before fitting or scoring. These families keep integer counts and allow the two timing measurements to convey dependent evidence.
+
+Fit regularised conditional models using interval-aligned development replays and whole-root splits. Validate each factor and the sequential predictions with uncertainty computed across roots. Diagnose the affected component if validation fails. Acceptance of this initial family authorises neither acceptance of an unvalidated fit nor selection using protected results. [Calibration and checks](../../particle_filter/SCIENTIFIC_SPEC.md#initial-conditional-distributions)

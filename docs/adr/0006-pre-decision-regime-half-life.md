@@ -1,0 +1,7 @@
+# Use a common 120-second regime half-life during pre-decision inference
+
+The half-life $h$ is the time over which the prior probability of staying continuously in the current operating regime falls to one half. It describes persistence of background intensity and publisher condition. Individual query arrivals follow the workload law for the current intensity. The distinction matters even within regime A, where many queries can arrive while the regime persists.
+
+At each five-second pre-decision update, use departure probability $q(h)=1-2^{-5/h}$. Use $h=120$ seconds for A, B and C in the primary analysis. A common half-life avoids assigning different persistence parameters without independent evidence. This is a modelling assumption. Neither production telemetry nor the simulator's scheduled interventions supplied the rate. Apply the same probability at every update, including those around the experimental intervention time. Destination probabilities conditional on departure are a separate design decision.
+
+Freeze $h=60$ s and $h=240$ s as sensitivity cases. Report all three settings, retaining 120 s as primary regardless of protected results. Compare state estimation, hold and promote risk calibration, and improvement in signed incremental-risk prediction over the baselines. In each case the half-life affects the inferred posterior at the cut. Each primary 120-second forecast continuation then keeps its sampled regime fixed as stochastic work evolves. [Forecast persistence](0003-regime-persistence-in-action-forecasts.md)

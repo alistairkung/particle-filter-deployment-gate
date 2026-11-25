@@ -12,6 +12,8 @@ These terms describe what the outbox reveals before a change in Java traffic sha
 
 **Publisher condition** is the operating condition governing the publisher's off-DB acknowledgement wait. An acknowledgement already in progress keeps the duration assigned when it began.
 
+**Operating regime** is the combination of background query intensity and publisher condition in force at a given time. Realised query demand and unfinished DB work can vary within a single regime.
+
 ## Observation history
 
 **Pending outbox row** means an event whose insert has committed and whose publication mark has yet to complete. A claimed or acknowledged event can still be pending.
