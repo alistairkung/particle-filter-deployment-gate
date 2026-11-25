@@ -105,27 +105,20 @@ class Panel:
 
 def time_all_variants(job):
     from telemetry_sufficiency.methods import predict
+    from ..config import REVIEWED, load_variant
+    from ..experiment import predict_variants
 
     slot, n, k, filter_seed, forecast_seed = job
     case = _cases[slot]
     fit = _fits[case.fold]
     predict(_direct_models, case.history)
-    for half_life in (120, 60, 240):
-        posterior = infer(
-            case.history,
-            fit.closure,
-            fit.likelihood,
-            particles=n,
-            seed=filter_seed,
-            half_life=half_life,
-        )
-        forecast(posterior, fit.closure, pairs=k, seed=forecast_seed)
-        if half_life == 120:
-            forecast(
-                posterior,
-                fit.closure,
-                pairs=k,
-                seed=forecast_seed,
-                work_by_regime=fit.cut_work_ns,
-            )
+    predict_variants(
+        case.history,
+        fit,
+        [load_variant(name) for name in REVIEWED],
+        particles=n,
+        pairs=k,
+        seed=filter_seed,
+        forecast_seed=forecast_seed,
+    )
     return slot, peak_rss_mib()

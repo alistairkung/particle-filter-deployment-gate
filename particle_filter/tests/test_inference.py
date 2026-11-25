@@ -145,3 +145,38 @@ def test_zero_weight_regime_is_extinct_before_resampling_threshold():
     assert not step.resampled and step.ess >= 48
     assert step.regime_counts[2] > 0 and step.regime_probabilities[2] == 0
     assert step.unique_ancestors == 96 - step.regime_counts[2]
+
+
+def test_second_observation_updates_an_enumerable_regime_forecast(monkeypatch):
+    from particle_filter import inference
+    from particle_filter.physical import Closure
+    from simulator.observations import START, INTERVAL, Reading
+
+    # For this finite fixture, the fixed primitive tape draws four particles per
+    # starting regime and exactly reproduces each row of the transition matrix.
+    transition = np.array([[0.5, 0.25, 0.25], [0.5, 0.5, 0], [0.5, 0, 0.5]])
+    monkeypatch.setattr(inference, "transition_matrix", lambda _: transition)
+    t1, t2 = START + INTERVAL, START + 2 * INTERVAL
+    readings = [
+        Reading(START, t1, t1, 0, 0, 0, None),
+        Reading(t1, t2, t2, 0, 0, 0, None),
+    ]
+
+    class EmissionTable:
+        def log_likelihoods(self, contexts, reading):
+            table = (
+                dict(A=1, B=2, C=3)
+                if reading.interval_end_ns == t1
+                else dict(A=3, B=2, C=1)
+            )
+            return np.log([table[c.regime] / 3 for c in contexts])
+
+    result = inference.infer(
+        readings, Closure([]), EmissionTable(), particles=12, seed=449, cutoff=t2
+    )
+    # First update gives (1,2,3)/6. Summing the nine weighted paths before
+    # the second update gives (12,5,7)/24. Apply (3,2,1) once and normalise.
+    first, second = result.steps
+    assert first.regime_probabilities == pytest.approx(np.array([1, 2, 3]) / 6)
+    assert second.regime_probabilities == pytest.approx(np.array([36, 10, 7]) / 53)
+    assert (first.evidence_intervals, second.evidence_intervals) == ((t1,), (t2,))

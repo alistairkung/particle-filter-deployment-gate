@@ -94,3 +94,20 @@ def test_fitted_forecast_runs_with_private_plant_and_evidence_access_denied(
         result = forecast(posterior, closure, pairs=2, seed=567)
     assert result.pairs == 2
     assert result.delta == result.promote - result.hold
+
+
+def test_one_experiment_can_repeat_a_posterior_across_independent_forecast_seeds():
+    from types import SimpleNamespace
+    from particle_filter.config import load_variant
+    from particle_filter.experiment import predict_variants
+    from particle_filter.physical import Closure
+
+    fit = SimpleNamespace(closure=Closure([]), likelihood=None)
+    full = [load_variant("full")]
+    settings = dict(particles=6, pairs=3, seed=131)
+    default = predict_variants([], fit, full, **settings)["full"]
+    same = predict_variants([], fit, full, **settings, forecast_seed=131)["full"]
+    other = predict_variants([], fit, full, **settings, forecast_seed=95)["full"]
+    assert same == default
+    assert other["regime_probabilities"] == same["regime_probabilities"]
+    assert other["mean_work_s"] == same["mean_work_s"]
