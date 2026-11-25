@@ -201,7 +201,11 @@ def _age_support(count, marks, pending, previous_age):
 
 def _band_mask(lower, upper):
     left = np.r_[-np.inf, BAND_UPPER[:-1]]
-    return (BAND_UPPER >= lower[:, None]) & (left < upper[:, None])
+    return (
+        (lower[:, None] <= upper[:, None])
+        & (BAND_UPPER >= lower[:, None])
+        & (left < upper[:, None])
+    )
 
 
 @dataclass
@@ -231,7 +235,10 @@ class _Ordinal:
         supported = np.isfinite(norm)
         fitted = np.zeros_like(logp)
         fitted[supported] = np.exp(logp[supported] - norm[supported, None])
-        uniform = feasible / feasible.sum(axis=1)[:, None]
+        band_count = feasible.sum(axis=1)[:, None]
+        uniform = np.divide(
+            feasible, band_count, where=band_count > 0, out=np.zeros_like(fitted)
+        )
         return np.where(
             supported[:, None], (1 - smoothing) * fitted + smoothing * uniform, uniform
         )
@@ -276,26 +283,51 @@ def _reading_columns(readings):
     return marks, count, age, delay
 
 
-def _delay_minimum(regime, marks, previous_count):
-    # At most the first mark can inherit an acknowledgement from before the
-    # boundary. Each subsequent row incurs the full claim, acknowledgement and
-    # mark cycle. Use the minimum possible median even if the inherited row
-    # received a faster acknowledgement under the preceding regime.
-    minimum = np.full(len(regime), 0.004)
-    slow = regime == 2
-    minimum[slow & (marks == 2)] = 0.028
-    minimum[slow & ((marks >= 3) | (previous_count == 0))] = 0.052
-    return minimum
+def _delay_bounds(regime, marks, previous_count, previous_age, oldest_age):
+    """Bounds on the median completed delay, including a partially processed first row."""
+    # Work in integer ticks for band endpoints. For M=0 the delay factor is
+    # omitted. A placeholder rank avoids indexing an empty order statistic.
+    m = np.clip(marks, 1, MAX_MARKS[regime]).astype(int)
+    inherited = np.where(previous_count < 0, m, np.minimum(previous_count, m))
+    age_ns = np.rint(previous_age * SECOND).astype(int)
+    oldest_ns = np.rint(oldest_age * SECOND)
+    cycle = np.where(regime == 2, 52_000_000, 4_000_000)
+
+    def middle_bounds(rank):
+        # Mark i must complete by 5-(M-i)*cycle. Its delay upper bound adds
+        # the prior oldest age only for an inherited row. Within the inherited
+        # and new groups the bounds form two sorted sequences. Partition their
+        # first 'rank' values where old[i] <= new[rank-i+1].
+        old_used = np.floor_divide((inherited + rank + 1) * cycle - age_ns, 2 * cycle)
+        old_used = np.clip(
+            old_used, np.maximum(0, rank - (m - inherited)), np.minimum(rank, inherited)
+        )
+        new_used = rank - old_used
+        last_old = 5 * SECOND + age_ns - (m - old_used) * cycle
+        last_new = 5 * SECOND - (m - inherited - new_used) * cycle
+        upper = np.maximum(
+            np.where(old_used > 0, last_old, 0), np.where(new_used > 0, last_new, 0)
+        )
+        # Mark i cannot complete before (i-1)*cycle. Every marked commit
+        # precedes any surviving pending row's commit. A first inherited
+        # acknowledgement may have begun under the faster preceding regime.
+        first_min = np.where((rank == 1) & (inherited > 0), 4_000_000, cycle)
+        lower = np.maximum(first_min, oldest_ns - 5 * SECOND + (rank - 1) * cycle)
+        return lower, upper
+
+    left_min, left_max = middle_bounds((m + 1) // 2)
+    right_min, right_max = middle_bounds(m // 2 + 1)
+    return (left_min + right_min) / (2 * SECOND), (left_max + right_max) / (2 * SECOND)
 
 
 def _delay_mask(regime, marks, previous_count, previous_age, oldest_age):
-    minimum = np.maximum(
-        _delay_minimum(regime, marks, previous_count), oldest_age - 5.0
+    return _band_mask(
+        *_delay_bounds(regime, marks, previous_count, previous_age, oldest_age)
     )
-    return _band_mask(minimum, previous_age + 5.0)
 
 
 def _physical_support(marks, pending, age, delay, regime, prev, prev_age):
+    delay_min, delay_max = _delay_bounds(regime, marks, prev, prev_age, age)
     lower = np.maximum(0, prev - marks)
     low_age, high_age, exact = _age_support(prev, marks, pending, prev_age)
     # Measurements are produced on integer nanosecond ticks. Adding five seconds
@@ -315,11 +347,8 @@ def _physical_support(marks, pending, age, delay, regime, prev, prev_age):
             marks == 0,
             np.isnan(delay),
             np.isfinite(delay)
-            & (
-                delay
-                >= np.maximum(_delay_minimum(regime, marks, prev), age - 5.0) - 1.0e-10
-            )
-            & (delay <= prev_age + 5.0 + 1.0e-10),
+            & (delay >= delay_min - 1.0e-10)
+            & (delay <= delay_max + 1.0e-10),
         )
     )
     return valid, lower, exact, _band_mask(low_age, high_age)

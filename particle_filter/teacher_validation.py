@@ -22,7 +22,7 @@ def _dump_json(path, payload):
     path.write_text(json.dumps(payload, indent=2, allow_nan=False) + "\n")
 
 
-def _heldout_fold(fold, roots, replays, output):
+def _heldout_fold(fold, roots, replays, output, cache_fits):
     rng = np.random.default_rng([57012026, fold])
     training = [root for root in roots if root.fold != fold]
     heldout = [root for root in roots if root.fold == fold]
@@ -30,8 +30,9 @@ def _heldout_fold(fold, roots, replays, output):
     fit = fit_fold(training, replays)
     # Local fit cache for sequential checks from the same run. Its manifest
     # names the training inventory. Never unpickle externally supplied models.
-    with (output / f"fit-{fold}.pickle").open("xb") as stream:
-        pickle.dump(fit, stream)
+    if cache_fits:
+        with (output / f"fit-{fold}.pickle").open("xb") as stream:
+            pickle.dump(fit, stream)
     records = []
     scores = []
     unsmoothed_scores = []
@@ -128,7 +129,7 @@ def plot_diagnostics(reports, output):
     plt.close(fig)
 
 
-def run_teacher_validation(output, workers=4):
+def run_teacher_validation(output, workers=4, *, cache_fits=False):
     """Run physical-state diagnostics only, with fresh output and no protected inputs."""
     output.mkdir(parents=True, exist_ok=True)
     if any(output.iterdir()):
@@ -149,7 +150,7 @@ def run_teacher_validation(output, workers=4):
         # training roots. Pool processes bound simultaneous solver memory use.
         with ProcessPoolExecutor(max_workers=workers) as pool:
             tasks = [
-                pool.submit(_heldout_fold, fold, roots, replays, output)
+                pool.submit(_heldout_fold, fold, roots, replays, output, cache_fits)
                 for fold in range(5)
             ]
             reports = [task.result() for task in tasks]
@@ -183,5 +184,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument(
+        "--cache-fits",
+        action="store_true",
+        help="Export local development fits for a repeat diagnostic in the same environment",
+    )
     args = parser.parse_args()
-    print(json.dumps(run_teacher_validation(args.output, args.workers), indent=2))
+    print(
+        json.dumps(
+            run_teacher_validation(
+                args.output, args.workers, cache_fits=args.cache_fits
+            ),
+            indent=2,
+        )
+    )
