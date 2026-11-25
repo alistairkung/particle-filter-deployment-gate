@@ -165,13 +165,14 @@ def inventory_receipt(root, config_path=None, *, reproduction_signature=None):
 
 def frozen_reproduction_receipt():
     """Bind the expected frozen outputs to the actual source of a fresh pilot."""
-    from experiments.__main__ import identity
+    from experiments.__main__ import FROZEN_MANIFEST_SHA256, identity
 
+    frozen = PILOT / "results/frozen"
+    if digest(frozen / "manifest.json") != FROZEN_MANIFEST_SHA256:
+        raise ValueError("Invalid archived pilot manifest")
     config = PILOT / "configs/pilot.toml"
     signature, _ = identity(config)
-    return inventory_receipt(
-        PILOT / "results/frozen", config, reproduction_signature=signature
-    )
+    return inventory_receipt(frozen, config, reproduction_signature=signature)
 
 
 def compare(original, reproduced, config_path=None):

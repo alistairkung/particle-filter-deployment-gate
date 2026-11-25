@@ -1,10 +1,18 @@
 """Generate route-independent primitives and apply a routing intervention."""
 
+from collections.abc import Iterable
 import hashlib
+from typing import Literal
 
 import numpy as np
 
 from .config import MS, SECOND, PlantConfig
+
+
+type Primitive = (
+    tuple[int, Literal["write"], int, float, float]
+    | tuple[int, Literal["reference", "extra"], int, int]
+)
 
 
 def rng(seed, *key):
@@ -30,18 +38,25 @@ def arrivals(generator, rate, seconds):
 
 def primitive_tape(
     config: PlantConfig,
-    root_key,
-    phase,
+    root_key: Iterable[str | int],
+    phase: Literal["prefix", "future"],
     *,
     reference_rate,
     extra_rate=0,
     extra_after_ns=None,
-):
+) -> list[Primitive]:
     """Key every draw by seed, root components, phase and source; keep stable tie order."""
     if phase not in ("prefix", "future"):
         raise ValueError("Unknown tape phase")
 
-    key = (config.seed, *root_key, phase)
+    parts = tuple(root_key)
+    if len(parts) < 2 or type(parts[-1]) is not int or parts[-1] < 0:
+        raise ValueError(
+            "Root key requires namespace labels and a nonnegative integer index"
+        )
+    if any(type(label) is not str or not label or "/" in label for label in parts[:-1]):
+        raise ValueError("Root namespace labels must be nonempty slash-free strings")
+    key = (config.seed, *parts, phase)
 
     def stream(name):
         return rng(*key, name)
@@ -75,7 +90,7 @@ def primitive_tape(
     return sorted(rows, key=lambda r: r[0])
 
 
-def admissions(tape, share, config: PlantConfig):
+def admissions(tape: Iterable[Primitive], share, config: PlantConfig):
     """Map each request's shared primitive draw to its routed atomic write demand."""
     if not 0 <= share <= 1:
         raise ValueError("Routing share must be in [0, 1]")

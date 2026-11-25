@@ -94,3 +94,14 @@ def test_replay_rejects_wrong_phase_before_advancing():
     with pytest.raises(ValueError, match="post-cut"):
         run_future(cut, [(0, "reference", 0, MS)], 0.60)
     assert cut.env.now == 0 and not cut.db.visits
+
+
+@pytest.mark.parametrize("key", [("ref/study", 0), ("study", "0"), ("study", True)])
+def test_ambiguous_names_cannot_alias_an_independent_root(key):
+    with pytest.raises(ValueError, match="Root"):
+        primitive_tape(CONFIG, key, "prefix", reference_rate=3.5)
+
+
+def test_admission_at_start_of_warmup_is_preserved():
+    plant, _ = replay_prefix(CONFIG, [(-60 * SECOND, "write", -1, 0.3, 1.0)], 0.25)
+    assert plant.writes[-1].commit == -60 * SECOND + 12 * MS

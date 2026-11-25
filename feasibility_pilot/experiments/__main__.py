@@ -31,6 +31,9 @@ from experiments.storage import (
 BASE = Path(__file__).resolve().parents[1]
 FROZEN = BASE / "results/frozen"
 FROZEN_REPORT = BASE / "FEASIBILITY_REPORT.md"
+FROZEN_MANIFEST_SHA256 = (
+    "55276b2edb1e8e0482f01b6935840e1b354fda74f3b2361fd46689d58d3e6d81"
+)
 
 
 def identity(config_path):
@@ -361,16 +364,13 @@ def main():
                 "Use a separate output directory to reproduce the archived experiment"
             )
         manifest = load_json(out / "manifest.json")
-        # The archived rows bind the historical implementation and frozen configuration.
-        signature = manifest["signature"]
-        files = manifest["input_digests"]
+        # The immutable manifest binds the historical signature used in every branch.
         if (
-            signature
-            != hashlib.sha256(json.dumps(files, sort_keys=True).encode()).hexdigest()
-            or files["config"] != digest(config_path)
-            or digest(config_path) != digest(BASE / "configs/pilot.toml")
+            digest(out / "manifest.json") != FROZEN_MANIFEST_SHA256
+            or digest(config_path) != manifest["input_digests"]["config"]
         ):
-            raise ValueError("Invalid archived pilot signature or configuration")
+            raise ValueError("Invalid archived pilot manifest or configuration")
+        signature = manifest["signature"]
         render(read_config(config_path), out, signature, args, manifest, archived=True)
         return
     require_output(out)

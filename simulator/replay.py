@@ -44,7 +44,7 @@ def replay_prefix(
     if -config.warmup * SECOND != START:
         raise ValueError("Observed replay requires the v1 sixty-second prefix")
     routed = admissions(prefix, share, config)
-    if any(not START < row[0] <= 0 for row in routed):
+    if any(not START <= row[0] <= 0 for row in routed):
         raise ValueError("Prefix admissions must fall within the pre-decision interval")
     ends = range(START + INTERVAL, 1, INTERVAL)
     cuts = set(ends)
