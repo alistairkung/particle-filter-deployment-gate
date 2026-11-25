@@ -9,87 +9,111 @@ import pyarrow.parquet as pq
 from . import custody as c
 from .observation import parse_history
 
-I, F, S, B = pa.int64(), pa.float64(), pa.string(), pa.bool_()
-VF = pa.list_(F)
+INT64, FLOAT64, STRING, BOOL = pa.int64(), pa.float64(), pa.string(), pa.bool_()
+FLOAT_VECTOR = pa.list_(FLOAT64)
 READINGS = dict(
-    interval_start_ns=I,
-    interval_end_ns=I,
-    available_at_ns=I,
-    pending_count=I,
-    oldest_pending_age_s=F,
-    publication_throughput_per_s=F,
-    completed_delay_median_s=F,
+    interval_start_ns=INT64,
+    interval_end_ns=INT64,
+    available_at_ns=INT64,
+    pending_count=INT64,
+    oldest_pending_age_s=FLOAT64,
+    publication_throughput_per_s=FLOAT64,
+    completed_delay_median_s=FLOAT64,
 )
-IDENTITY = dict(key=S, partition=S, condition=S, index=I)
+IDENTITY = dict(key=STRING, partition=STRING, condition=STRING, index=INT64)
 TRUTH = dict(
-    demand=F,
-    unfinished=F,
-    query_work_ns=I,
-    duration_ns=I,
-    queued_ns=I,
-    active_residual_ns=I,
+    demand=FLOAT64,
+    unfinished=FLOAT64,
+    query_work_ns=INT64,
+    duration_ns=INT64,
+    queued_ns=INT64,
+    active_residual_ns=INT64,
 )
-DIGESTS = dict(physical_digest=S, prefix_digest=S, history_digest=S, state_digest=S)
-ACTIONS = dict(hold=F, promote=F, increment=F)
-PUBLIC_PRED = dict(demand=F, unfinished=F, condition=VF, **ACTIONS)
+DIGESTS = dict(
+    physical_digest=STRING,
+    prefix_digest=STRING,
+    history_digest=STRING,
+    state_digest=STRING,
+)
+ACTIONS = dict(hold=FLOAT64, promote=FLOAT64, increment=FLOAT64)
+PUBLIC_PRED = dict(
+    demand=FLOAT64, unfinished=FLOAT64, condition=FLOAT_VECTOR, **ACTIONS
+)
 LEVELS = ("prior", "age", "current", "history")
-EXAMPLE_META = dict(branch=S, phase=S, ack_due=I, cut_digest=S, horizon_ns=I)
-WRITE_EVENTS = dict(
-    arrival=I, demand=I, eligible=B, java=B, commit=I, claim=I, ack=I, mark=I
+EXAMPLE_META = dict(
+    branch=STRING, phase=STRING, ack_due=INT64, cut_digest=STRING, horizon_ns=INT64
 )
-VISIT = dict(kind=I, identity=I, queued_ns=I, start_ns=I, end_ns=I)
+WRITE_EVENTS = dict(
+    arrival=INT64,
+    demand=INT64,
+    eligible=BOOL,
+    java=BOOL,
+    commit=INT64,
+    claim=INT64,
+    ack=INT64,
+    mark=INT64,
+)
+VISIT = dict(kind=INT64, identity=INT64, queued_ns=INT64, start_ns=INT64, end_ns=INT64)
 TABLES = {
     "inventory": IDENTITY,
-    "history-index": dict(key=S, readings=I),
-    "observations": dict(key=S, **READINGS),
+    "history-index": dict(key=STRING, readings=INT64),
+    "observations": dict(key=STRING, **READINGS),
     "targets": IDENTITY | TRUTH | DIGESTS,
     "branches": dict(
-        key=S, branch=S, breach=I, admissions_digest=S, cut_digest=S, future_digest=S
+        key=STRING,
+        branch=STRING,
+        breach=INT64,
+        admissions_digest=STRING,
+        cut_digest=STRING,
+        future_digest=STRING,
     ),
-    "windows": dict(key=S, branch=S, window_index=I, eligible=I, misses=I),
-    "predictions": dict(key=S, level=S, **PUBLIC_PRED),
-    "evaluator-predictions": dict(key=S, **ACTIONS),
-    "replay-audit": IDENTITY | dict(branches=I, admissions=I, replay_digest=S),
+    "windows": dict(
+        key=STRING, branch=STRING, window_index=INT64, eligible=INT64, misses=INT64
+    ),
+    "predictions": dict(key=STRING, level=STRING, **PUBLIC_PRED),
+    "evaluator-predictions": dict(key=STRING, **ACTIONS),
+    "replay-audit": IDENTITY
+    | dict(branches=INT64, admissions=INT64, replay_digest=STRING),
     "oof": dict(
-        key=S,
-        fold=I,
-        training_hash=S,
-        condition=S,
-        demand=F,
-        unfinished=F,
-        hold=I,
-        promote=I,
+        key=STRING,
+        fold=INT64,
+        training_hash=STRING,
+        condition=STRING,
+        demand=FLOAT64,
+        unfinished=FLOAT64,
+        hold=INT64,
+        promote=INT64,
     ),
-    "oof-predictions": dict(key=S, level=S, **PUBLIC_PRED),
-    "oof-evaluator-predictions": dict(key=S, **ACTIONS),
+    "oof-predictions": dict(key=STRING, level=STRING, **PUBLIC_PRED),
+    "oof-evaluator-predictions": dict(key=STRING, **ACTIONS),
     "models": dict(
-        fold=I,
-        level=S,
-        target=S,
-        features=pa.list_(S),
-        medians=VF,
-        means=VF,
-        scales=VF,
-        kind=S,
-        converged=B,
-        iterations=I,
-        intercept=VF,
-        coef=pa.list_(VF),
+        fold=INT64,
+        level=STRING,
+        target=STRING,
+        features=pa.list_(STRING),
+        medians=FLOAT_VECTOR,
+        means=FLOAT_VECTOR,
+        scales=FLOAT_VECTOR,
+        kind=STRING,
+        converged=BOOL,
+        iterations=INT64,
+        intercept=FLOAT_VECTOR,
+        coef=pa.list_(FLOAT_VECTOR),
     ),
     "example-roots": IDENTITY | EXAMPLE_META,
     "example-tapes": dict(
-        key=S,
-        phase=S,
-        ordinal=I,
-        tick_ns=I,
-        source=S,
-        identity=I,
-        routing_uniform=F,
-        business_draw=F,
-        query_work_ns=I,
+        key=STRING,
+        phase=STRING,
+        ordinal=INT64,
+        tick_ns=INT64,
+        source=STRING,
+        identity=INT64,
+        routing_uniform=FLOAT64,
+        business_draw=FLOAT64,
+        query_work_ns=INT64,
     ),
-    "example-visits": dict(key=S, ordinal=I, **VISIT),
-    "example-writes": dict(key=S, ordinal=I, identity=I, **WRITE_EVENTS),
+    "example-visits": dict(key=STRING, ordinal=INT64, **VISIT),
+    "example-writes": dict(key=STRING, ordinal=INT64, identity=INT64, **WRITE_EVENTS),
 }
 OPTIONAL = {
     "observations": {"completed_delay_median_s"},
@@ -136,7 +160,7 @@ def write(directory, table, rows):
         if row.keys() != names or any(row[k] is None for k in required):
             raise ValueError(f"Incomplete or unknown columns for {table}: {row.keys()}")
         for name, kind in TABLES[table].items():
-            if kind == I and row[name] is not None and type(row[name]) is not int:
+            if kind == INT64 and row[name] is not None and type(row[name]) is not int:
                 raise ValueError(f"Expected exact integer {table}.{name}")
     batch = pa.Table.from_pylist(rows, schema=spec)
     c.atomic(
