@@ -10,6 +10,10 @@ AIMS5701 studies whether transactional-outbox observations can inform a change i
 
 The telemetry study’s protected data have been inspected. Preserve entire root families in every split and reserve fresh independent roots for future evaluation.
 
+## Shared simulator
+
+The root-level `simulator/` package owns the FIFO plant, named stochastic inputs, matched replay and five-second outbox readings. Both completed studies use it. The studies own their scientific settings, endpoints, fits and Parquet evidence. [Simulator v1 API and worked example](simulator/README.md) · [Release-candidate verification](docs/simulator-v1-promotion.md)
+
 ## Reproduce the milestones
 
 The [storage verification summary](evidence_migration/README.md) links the file inventories, typed schemas and independent equivalence receipts. To regenerate a report from the published Parquet tables, follow the [pilot instructions](feasibility_pilot/README.md) or the [telemetry instructions](telemetry_sufficiency/README.md). To check the migration itself, use a full Git checkout containing both original evidence commits. Historical Git objects remain part of the repository.
