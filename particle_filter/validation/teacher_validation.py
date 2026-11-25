@@ -11,6 +11,7 @@ from time import monotonic
 import numpy as np
 
 from telemetry_sufficiency.archive import protect_destination
+from telemetry_sufficiency.custody import file_hash
 
 from .development import (
     development_inventory,
@@ -18,6 +19,7 @@ from .development import (
     replay_root,
     training_samples,
     model_digest,
+    protocol_digest,
 )
 from .emission_diagnostics import (
     diagnostic_rows,
@@ -30,9 +32,14 @@ def _dump_json(path, payload):
     path.write_text(json.dumps(payload, indent=2, allow_nan=False) + "\n")
 
 
-def _heldout_fold(fold, roots, replays, output, cache_fits, producing_model):
+def _heldout_fold(
+    fold, roots, replays, output, cache_fits, producing_model, producing_protocol
+):
     protect_destination(output)
-    if model_digest() != producing_model:
+    if (
+        model_digest() != producing_model
+        or protocol_digest("teacher") != producing_protocol
+    ):
         raise ValueError("Teacher worker model differs from run start")
     rng = np.random.default_rng([57012026, fold])
     training = [root for root in roots if root.fold != fold]
@@ -75,6 +82,7 @@ def _heldout_fold(fold, roots, replays, output, cache_fits, producing_model):
     finite = np.isfinite(unsmoothed)
     report = {
         "model_digest": producing_model,
+        "protocol_digest": producing_protocol,
         "fold": fold,
         "training_roots": len(training),
         "heldout_roots": len(heldout),
@@ -148,6 +156,7 @@ def run_teacher_validation(output, workers=4, *, cache_fits=False):
     if any(output.iterdir()):
         raise ValueError("Teacher-validation output directory must be empty")
     producing_model = model_digest()
+    producing_protocol = protocol_digest("teacher")
     roots = development_inventory()
     start = monotonic()
     reports = []
@@ -172,19 +181,27 @@ def run_teacher_validation(output, workers=4, *, cache_fits=False):
                     output,
                     cache_fits,
                     producing_model,
+                    producing_protocol,
                 )
                 for fold in range(5)
             ]
             reports = [task.result() for task in tasks]
-        if model_digest() != producing_model:
+        if (
+            model_digest() != producing_model
+            or protocol_digest("teacher") != producing_protocol
+        ):
             raise ValueError("Teacher model changed during validation")
         flags = repeatable_discrepancies([r["diagnostics"] for r in reports])
         summary = {
             "model_digest": producing_model,
+            "protocol_digest": producing_protocol,
             "kind": "held-out teacher-forced development diagnostics",
             "roots": len(roots),
             "intervals": sum(r["intervals"] for r in reports),
             "folds": len(reports),
+            "fold_evidence": {
+                str(i): file_hash(output / f"fold-{i}.json") for i in range(5)
+            },
             "bootstrap_resamples": 2000,
             "seconds": monotonic() - start,
             "gate": "investigate" if flags else "no repeatable teacher-forced trigger",

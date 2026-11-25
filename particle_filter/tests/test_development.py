@@ -52,3 +52,65 @@ def test_aggregation_rejects_unbound_run_receipts_before_writing_a_report(tmp_pa
     with pytest.raises(ValueError, match="producing model"):
         summarise(teacher, sequential, phase, tmp_path / "report")
     assert not (tmp_path / "report").exists()
+
+
+def test_fold_replaced_after_its_summary_cannot_enter_validation_report(tmp_path):
+    import json
+    import pytest
+    from telemetry_sufficiency.custody import file_hash
+    from particle_filter.validation.development import (
+        model_digest,
+        physical_digest,
+        protocol_digest,
+    )
+    from particle_filter.validation.validation_report import summarise
+
+    model = model_digest()
+    for stage in ("teacher", "sequential"):
+        directory = tmp_path / stage
+        directory.mkdir()
+        hashes = {}
+        for i in range(5):
+            path = directory / f"fold-{i}.json"
+            path.write_text(
+                json.dumps(
+                    dict(
+                        training_digest=str(i),
+                        model_digest=model,
+                        protocol_digest=protocol_digest(stage),
+                    )
+                )
+            )
+            hashes[str(i)] = file_hash(path)
+        summary = dict(
+            model_digest=model,
+            protocol_digest=protocol_digest(stage),
+            fold_evidence=hashes,
+            roots=1200 if stage == "teacher" else 36,
+            intervals=14400,
+        )
+        name = "summary.json" if stage == "teacher" else "sequential.json"
+        (directory / name).write_text(json.dumps(summary))
+    phase = tmp_path / "phase.json"
+    phase.write_text(
+        json.dumps(
+            dict(
+                development_roots=1200,
+                physical_digest=physical_digest(),
+                protocol_digest=protocol_digest("phase"),
+            )
+        )
+    )
+    replaced = tmp_path / "sequential/fold-4.json"
+    replaced.write_text(replaced.read_text() + "\n")
+    with pytest.raises(ValueError, match="fold 4.*digest"):
+        summarise(
+            tmp_path / "teacher", tmp_path / "sequential", phase, tmp_path / "report"
+        )
+    assert not (tmp_path / "report").exists()
+
+
+def test_protocol_digests_distinguish_the_three_producing_experiments():
+    from particle_filter.validation.development import protocol_digest
+
+    assert len({protocol_digest(s) for s in ("phase", "teacher", "sequential")}) == 3
