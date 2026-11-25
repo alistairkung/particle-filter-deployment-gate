@@ -33,7 +33,9 @@ def sha(data):
 
 def canonical(value):
     # JSON numbers retain their integer vs floating-point representation, including -0.0.
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    return json.dumps(
+        value, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode()
 
 
 def exact(observed, expected, label):
@@ -63,8 +65,12 @@ def tree(study):
 def git_objects():
     """Read blob content by object ID, independently of the working tree and converter."""
     with subprocess.Popen(
-        ["git", "cat-file", "--batch"], cwd=ROOT, stdin=subprocess.PIPE, stdout=subprocess.PIPE
+        ["git", "cat-file", "--batch"],
+        cwd=ROOT,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
     ) as proc:
+
         def read(entry):
             blob, size = entry
             proc.stdin.write((blob + "\n").encode())
@@ -108,7 +114,7 @@ def _npz_shape(data, fields):
                     raise ValueError(f"Unexpected NPY header in {name}")
                 shape, _, dtype = npformat.read_array_header_1_0(stream)
             arm, component = name.removesuffix(".npy").rsplit("_", 1)
-            if len(shape) != 1 or name in sizes.setdefault(arm, {}):
+            if len(shape) != 1 or component in sizes.setdefault(arm, {}):
                 raise ValueError(f"Unexpected NPZ array {name}")
             sizes[arm][component] = shape[0]
             fields[name].add(dtype.str)
@@ -149,30 +155,64 @@ def inventory(directory):
     directory.mkdir(parents=True, exist_ok=True)
     schemas = defaultdict(lambda: defaultdict(set))
     totals = {}
-    with git_objects() as read, (directory / "source-files.csv").open("w", newline="") as output:
+    with (
+        git_objects() as read,
+        (directory / "source-files.csv").open("w", newline="") as output,
+    ):
         writer = csv.writer(output, lineterminator="\n")
-        writer.writerow(["study", "commit", "path", "bytes", "git_blob", "sha256",
-                         "source_schema", "records", "record_unit"])
+        writer.writerow(
+            [
+                "study",
+                "commit",
+                "path",
+                "bytes",
+                "git_blob",
+                "sha256",
+                "source_schema",
+                "records",
+                "record_unit",
+            ]
+        )
         for study, rev in REVISIONS.items():
             counts = Counter()
             for path, entry in tree(study).items():
                 data = read(entry)
                 schema, records, unit = _describe(path, data, schemas)
-                writer.writerow([study, rev, path, len(data), entry[0], sha(data), schema, records, unit])
+                writer.writerow(
+                    [
+                        study,
+                        rev,
+                        path,
+                        len(data),
+                        entry[0],
+                        sha(data),
+                        schema,
+                        records,
+                        unit,
+                    ]
+                )
                 counts["study_files"] += 1
                 counts["study_bytes"] += len(data)
                 if path.is_relative_to(FROZEN) or path.is_relative_to(READY):
                     counts["frozen_files"] += 1
                     counts["frozen_bytes"] += len(data)
             totals[study] = dict(counts)
-    dump(directory / "source-schemas.json", {
-        schema: {field: sorted(types) for field, types in fields.items()}
-        for schema, fields in schemas.items()
-    })
-    dump(directory / "source-inventory.json", {
-        "commits": REVISIONS, "counts": totals, "files_sha256": sha((directory / "source-files.csv").read_bytes()),
-        "schemas_sha256": sha((directory / "source-schemas.json").read_bytes()),
-    })
+    dump(
+        directory / "source-schemas.json",
+        {
+            schema: {field: sorted(types) for field, types in fields.items()}
+            for schema, fields in schemas.items()
+        },
+    )
+    dump(
+        directory / "source-inventory.json",
+        {
+            "commits": REVISIONS,
+            "counts": totals,
+            "files_sha256": sha((directory / "source-files.csv").read_bytes()),
+            "schemas_sha256": sha((directory / "source-schemas.json").read_bytes()),
+        },
+    )
 
 
 if __name__ == "__main__":

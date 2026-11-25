@@ -141,11 +141,14 @@ def test_reconstruction_reads_window_counts_and_detects_wrong_persisted_differen
     from experiments.storage import (
         budgets,
         compute_root,
-        load_json,
-        read_root,
         save_json,
     )
-    from experiments.validation import validate
+    from experiments.__main__ import validate_and_publish
+    from experiments.migrate import consolidate
+    from experiments.parquet import read_records
+    from experiments.runner import arms
+    import pyarrow as pa
+    import pyarrow.parquet as pq
 
     c = replace(
         read_config("configs/pilot.toml"),
@@ -165,15 +168,17 @@ def test_reconstruction_reads_window_counts_and_detects_wrong_persisted_differen
         queue_tolerance=5,
     )
     signature = "development"
-    checks = validate(c, tmp_path, workers=1)
+    checks = validate_and_publish(c, tmp_path, 1, signature)
     save_json(tmp_path / "validation/result.json", {**checks, "signature": signature})
     assert checks["passed"]
     roots = {}
     for family, size in budgets(c).items():
-        roots[family] = []
         for idx in range(size):
             compute_root((c, tmp_path, family, idx, signature))
-            roots[family].append(read_root(tmp_path, c, family, idx, signature))
+        consolidate(tmp_path, tmp_path, c, family, signature)
+        roots[family] = read_records(
+            tmp_path, family, {a.name for a in arms(c, family)}, size, signature, 2
+        )
     summary = summarize(c, roots, True)
     with pytest.raises(FileNotFoundError):
         audit(c, tmp_path, summary, True)
@@ -185,17 +190,18 @@ def test_reconstruction_reads_window_counts_and_detects_wrong_persisted_differen
     changed["migration"]["high"]["lower"] += 0.01
     with pytest.raises(ValueError, match="migration.high.lower"):
         audit(c, tmp_path, changed, True)
-    migration_path = tmp_path / "branches/C23/0000.json"
-    original = load_json(migration_path)
-    changed = load_json(migration_path)
-    changed["branches"]["high_hold"]["cut"] = "different"
-    save_json(migration_path, changed)
+    migration_path = tmp_path / "evidence/C23/branches.parquet"
+    original = pq.read_table(migration_path)
+    rows = original.to_pylist()
+    next(row for row in rows if row["arm"] == "high_hold")["cut"] = "different"
+    pq.write_table(pa.Table.from_pylist(rows, schema=original.schema), migration_path)
     with pytest.raises(ValueError, match="unmatched decision states"):
         audit(c, tmp_path, summary, True)
-    save_json(migration_path, original)
-    path = tmp_path / "branches/C4/0000.json"
-    raw = load_json(path)
-    raw["branches"]["ruby"]["windows"][0]["work_s"] += 1
-    save_json(path, raw)
+    pq.write_table(original, migration_path)
+    path = tmp_path / "evidence/C4/windows.parquet"
+    windows = pq.read_table(path)
+    rows = windows.to_pylist()
+    next(row for row in rows if row["arm"] == "ruby")["work_s"] += 1
+    pq.write_table(pa.Table.from_pylist(rows, schema=windows.schema), path)
     with pytest.raises(ValueError, match="growth"):
         audit(c, tmp_path, summary, True)
