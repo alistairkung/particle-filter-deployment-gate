@@ -154,3 +154,21 @@ def test_mixture_update_uses_hypothetical_regime_capacity_without_counting_throu
     assert model.log_likelihood(nominal, fractional) == -np.inf
     with pytest.raises(ValueError, match="unavailable"):
         model.log_likelihood(replace(nominal, prior=observed), observed)
+
+
+@pytest.mark.parametrize(("marks", "limit"), [(3, 5.0), (4, 4.974)])
+def test_delay_median_respects_one_inherited_mark_and_new_commits(marks, limit):
+    # One inherited row (age 12s), all other marks must be for new commits.
+    # Three delay upper bounds are 16.896, 4.948, 5s, with median 5s.
+    # Four are 16.844, 4.896, 4.948, 5s, with median 4.974s.
+    model = fit_emission(training())
+    p = reading(START + 3 * INTERVAL, 1, 12.0, 7, 0.02)
+    c = Context("C", 0.1, 0.1, p, p.interval_end_ns)
+    o = reading(c.start_ns, 0, 0.0, marks, limit)
+    assert math.isfinite(model.log_likelihood(c, o))
+    assert (
+        model.log_likelihood(c, replace(o, completed_delay_median_s=limit + 1.0e-8))
+        == -math.inf
+    )
+    # A single inherited mark can have started its acknowledgement in nominal A.
+    assert math.isfinite(model.log_likelihood(c, reading(c.start_ns, 0, 0.0, 1, 0.004)))
