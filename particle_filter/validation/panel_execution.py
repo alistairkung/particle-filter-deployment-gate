@@ -9,8 +9,8 @@ import time
 from simulator.workload import rng
 from telemetry_sufficiency.custody import save
 
-from .forecast import forecast
-from .inference import infer
+from ..forecast import forecast
+from ..inference import infer
 
 
 @dataclass(frozen=True)

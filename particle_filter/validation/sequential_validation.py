@@ -14,15 +14,17 @@ from simulator.observations import INTERVAL
 from telemetry_sufficiency.custody import file_hash, save
 from telemetry_sufficiency.parquet_evidence import read_fit
 
-from .analysis import score_roots
+from telemetry_sufficiency.archive import protect_destination
+
+from ..evaluation import score_roots
 from .development import DEVELOPMENT, development_inventory, fit_fold, replay_root
 from .emission_diagnostics import (
     diagnostic_rows,
     fold_diagnostics,
     repeatable_discrepancies,
 )
-from .forecast import forecast
-from .inference import infer
+from ..forecast import forecast
+from ..inference import infer
 
 # Declared diagnostic settings. Convergence and method lock are separate stages.
 PARTICLES = 128
@@ -194,6 +196,7 @@ def _state_diagnostics(rows):
 
 def run(output, workers):
     output = Path(output)
+    protect_destination(output)
     output.mkdir(exist_ok=False, parents=True)
     start = perf_counter()
     try:

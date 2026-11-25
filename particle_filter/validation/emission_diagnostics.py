@@ -6,7 +6,7 @@ import numpy as np
 from scipy.special import betainc, expit, log_expit, logsumexp
 
 from simulator.observations import INTERVAL
-from .emissions import (
+from ..emissions import (
     BAND_UPPER,
     MAX_MARKS,
     REGIMES,

@@ -9,7 +9,7 @@ from telemetry_sufficiency.custody import digest
 from telemetry_sufficiency.parquet_evidence import rows
 
 DEVELOPMENT = (
-    Path(__file__).resolve().parents[1] / "telemetry_sufficiency/results/v1/development"
+    Path(__file__).resolve().parents[2] / "telemetry_sufficiency/results/v1/development"
 )
 
 
@@ -66,7 +66,7 @@ def replay_root(root):
 
 
 def training_samples(replays):
-    from .emissions import Context
+    from ..emissions import Context
 
     for intervals in replays:
         previous = None
@@ -93,9 +93,9 @@ class FoldFit:
 
 
 def fit_fold(training, replays):
-    from .emissions import fit_emission
+    from ..emissions import fit_emission
     from .emission_diagnostics import training_thresholds
-    from .physical import Closure
+    from ..physical import Closure
 
     samples = list(training_samples(replays[r.key] for r in training))
     donors = ((i.regime, i.end) for r in training for i in replays[r.key])
@@ -113,10 +113,20 @@ def fit_fold(training, replays):
 
 
 def study_source_digest():
+    """Bind study code and variant parameters by content and portable relative path."""
     from hashlib import sha256
 
-    source = Path(__file__).parent
+    source = Path(__file__).resolve().parents[1]
+    paths = []
+    for directory, subdirs, files in source.walk():
+        subdirs[:] = [
+            d
+            for d in subdirs
+            if d not in {"results", "tests", "__pycache__"} and not d.startswith(".")
+        ]
+        paths.extend(directory / f for f in files if f.endswith((".py", ".toml")))
     combined = sha256()
-    for path in sorted(source.glob("*.py")):
-        combined.update(path.name.encode() + b"\0" + sha256(path.read_bytes()).digest())
+    for path in sorted(paths):
+        name = path.relative_to(source).as_posix().encode()
+        combined.update(name + b"\0" + sha256(path.read_bytes()).digest())
     return combined.hexdigest()

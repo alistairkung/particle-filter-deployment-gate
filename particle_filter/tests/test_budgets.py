@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from particle_filter.budgets import particle_change, rollout_variation
+from particle_filter.validation.budgets import particle_change, rollout_variation
 
 
 def test_one_unstable_regime_prevents_particle_budget_lock():

@@ -5,7 +5,7 @@ import pytest
 
 
 def test_numerical_panel_requires_the_exact_validated_report(tmp_path):
-    from particle_filter.convergence import validate_evidence
+    from particle_filter.validation.convergence import validate_evidence
 
     report = tmp_path / "validation.json"
     report.write_text(json.dumps({"status": "requires-review"}))
@@ -21,7 +21,7 @@ def test_numerical_panel_requires_the_exact_validated_report(tmp_path):
 
 def test_particle_doubling_loss_uses_signed_paired_outcomes():
     import numpy as np
-    from particle_filter.convergence import paired_loss_change
+    from particle_filter.validation.convergence import paired_loss_change
 
     # Independently of action base rates, the signed target is -1 on each root.
     target = -np.ones((3, 12))
@@ -33,7 +33,7 @@ def test_particle_doubling_loss_uses_signed_paired_outcomes():
 
 
 def test_panel_cli_preserves_validation_failure_without_opening_any_roots(tmp_path):
-    from particle_filter.convergence import main
+    from particle_filter.validation.convergence import main
 
     evidence = tmp_path / "validation.json"
     evidence.write_text('{"status": "failed"}')
@@ -59,7 +59,7 @@ def test_panel_cli_preserves_validation_failure_without_opening_any_roots(tmp_pa
 
 
 def test_validation_receipt_verifies_sibling_evidence_after_relocation(tmp_path):
-    from particle_filter.convergence import validate_evidence
+    from particle_filter.validation.convergence import validate_evidence
 
     bundle = tmp_path / "relocated"
     teacher = bundle / "teacher" / "summary.json"

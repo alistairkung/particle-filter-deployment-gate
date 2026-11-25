@@ -1,4 +1,4 @@
-from particle_filter.development_replay import replay_development
+from particle_filter.validation.development_replay import replay_development
 from simulator.config import SECOND
 from telemetry_sufficiency.plant import raw_tape, start_prefix
 
@@ -53,7 +53,7 @@ def test_reconstructed_work_finishes_before_new_claim_enters_and_inflight_ack_ke
 
 def test_phase_challenge_conditions_on_revealed_phase_with_same_work_and_pending():
     from numpy.random import default_rng
-    from particle_filter.development_replay import PhaseDiagnostic
+    from particle_filter.validation.development_replay import PhaseDiagnostic
     from particle_filter.physical import Boundary, Visit
     from simulator.config import MS
     from simulator.model import CLAIM, QUERY

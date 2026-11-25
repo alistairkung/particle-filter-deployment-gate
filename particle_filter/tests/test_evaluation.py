@@ -1,6 +1,6 @@
 import pytest
 
-from particle_filter.analysis import score_roots
+from particle_filter.evaluation import score_roots
 
 
 def test_matched_hold_only_breaches_contribute_to_paired_gain():

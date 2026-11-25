@@ -7,7 +7,7 @@ from simulator.replay import ObservedModel
 from simulator.workload import admissions
 from telemetry_sufficiency.plant import CONFIG, ONSET, raw_tape
 
-from .physical import Boundary, Closure, anonymous_boundary
+from ..physical import Boundary, Closure, anonymous_boundary
 
 
 @dataclass(frozen=True, slots=True)

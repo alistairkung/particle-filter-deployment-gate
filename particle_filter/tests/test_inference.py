@@ -177,8 +177,8 @@ def test_fitted_forecast_runs_with_private_plant_and_evidence_access_denied(
     """Fit on separate development roots; deny the forecast all evaluator adapters."""
     import builtins
     from pathlib import Path
-    from particle_filter.development import training_samples
-    from particle_filter.development_replay import replay_development
+    from particle_filter.validation.development import training_samples
+    from particle_filter.validation.development_replay import replay_development
     from particle_filter.emissions import fit_emission
     from particle_filter.forecast import forecast
     from particle_filter.inference import infer

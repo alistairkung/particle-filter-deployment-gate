@@ -10,6 +10,8 @@ from time import monotonic
 
 import numpy as np
 
+from telemetry_sufficiency.archive import protect_destination
+
 from .development import development_inventory, fit_fold, replay_root, training_samples
 from .emission_diagnostics import (
     diagnostic_rows,
@@ -23,6 +25,7 @@ def _dump_json(path, payload):
 
 
 def _heldout_fold(fold, roots, replays, output, cache_fits):
+    protect_destination(output)
     rng = np.random.default_rng([57012026, fold])
     training = [root for root in roots if root.fold != fold]
     heldout = [root for root in roots if root.fold == fold]
@@ -131,6 +134,7 @@ def plot_diagnostics(reports, output):
 
 def run_teacher_validation(output, workers=4, *, cache_fits=False):
     """Run physical-state diagnostics only, with fresh output and no protected inputs."""
+    protect_destination(output)
     output.mkdir(parents=True, exist_ok=True)
     if any(output.iterdir()):
         raise ValueError("Teacher-validation output directory must be empty")

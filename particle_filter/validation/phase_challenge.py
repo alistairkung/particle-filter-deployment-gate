@@ -9,7 +9,7 @@ import numpy as np
 from simulator.config import SECOND
 from .development import development_inventory, replay_root
 from .development_replay import PhaseDiagnostic
-from .physical import Closure, matched_pair, propagate
+from ..physical import Closure, matched_pair, propagate
 
 SEED = 413026193
 INTERVAL_REPEATS = 4

@@ -9,7 +9,7 @@ from telemetry_sufficiency.custody import save
 from telemetry_sufficiency.parquet_evidence import read_fit
 
 from .config import load_variant
-from .development import DEVELOPMENT, development_inventory, fit_fold, replay_root
+from .validation.development import DEVELOPMENT, development_inventory, fit_fold, replay_root
 from .forecast import forecast
 from .inference import infer
 
@@ -49,7 +49,7 @@ def predict_variants(history, fit, variants, *, particles, pairs, seed):
 
 def run_experiment(output, names, *, particles, pairs, seed):
     """Fit on four folds, predict the held-out fold, then join development outcomes."""
-    from .analysis import score_roots
+    from .evaluation import score_roots
     from telemetry_sufficiency.parquet_evidence import histories
 
     output = Path(output)

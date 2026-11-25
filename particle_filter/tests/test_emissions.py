@@ -57,7 +57,7 @@ def test_fitted_likelihood_preserves_zero_mark_support_and_exact_inherited_age()
 
 
 def test_joint_predictive_diagnostics_respect_capacity_and_condition_timing():
-    from particle_filter.emission_diagnostics import (
+    from particle_filter.validation.emission_diagnostics import (
         diagnostic_rows,
         training_thresholds,
     )
@@ -81,7 +81,7 @@ def test_joint_predictive_diagnostics_respect_capacity_and_condition_timing():
 
 
 def test_root_intervals_preserve_temporal_pairing_and_flag_repeated_fold_errors():
-    from particle_filter.emission_diagnostics import (
+    from particle_filter.validation.emission_diagnostics import (
         fold_diagnostics,
         repeatable_discrepancies,
     )
@@ -108,7 +108,7 @@ def test_root_intervals_preserve_temporal_pairing_and_flag_repeated_fold_errors(
 
 
 def test_completed_delay_obeys_minimum_publisher_cycle_and_never_has_zero_band_mass():
-    from particle_filter.emission_diagnostics import diagnostic_rows
+    from particle_filter.validation.emission_diagnostics import diagnostic_rows
 
     samples = training()
     model = fit_emission(samples)

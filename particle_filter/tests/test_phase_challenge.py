@@ -1,6 +1,6 @@
 import numpy as np
 
-from particle_filter.phase_challenge import interval_summary
+from particle_filter.validation.phase_challenge import interval_summary
 
 
 def test_phase_comparison_preserves_paired_root_weight_and_has_zero_gain_for_identical_forecasts():

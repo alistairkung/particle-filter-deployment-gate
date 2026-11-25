@@ -1,4 +1,4 @@
-from particle_filter.development import development_inventory
+from particle_filter.validation.development import development_inventory
 
 
 def test_replayed_roots_match_the_recorded_development_folds():

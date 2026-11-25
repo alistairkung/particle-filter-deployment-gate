@@ -7,6 +7,8 @@ from pathlib import Path
 
 from telemetry_sufficiency.custody import file_hash, save
 
+from telemetry_sufficiency.archive import protect_destination
+
 from .development import study_source_digest
 
 
@@ -51,6 +53,7 @@ def _diagnostic_plot(folds, dest):
 
 def summarise(teacher, sequential, phase, output):
     # Keep the report and its sibling evidence directories together when relocating a run.
+    protect_destination(output)
     bundle = output.resolve().parent
     if any(
         not p.resolve().is_relative_to(bundle) for p in (teacher, sequential, phase)
