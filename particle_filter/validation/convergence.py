@@ -319,8 +319,15 @@ def main(argv=None):
                 diagnostics_only=args.diagnostics_only,
             )
             report["validation_status"] = validation["status"]
-            from .development import study_source_digest
+            from .development import model_digest, physical_digest, study_source_digest
 
+            if (
+                validation.get("model_digest") != model_digest()
+                or validation.get("physical_digest") != physical_digest()
+            ):
+                raise ValueError(
+                    "Development validation model differs from the current model"
+                )
             if validation.get("source_digest") != study_source_digest():
                 raise ValueError(
                     "Development validation source digest differs from the current implementation"

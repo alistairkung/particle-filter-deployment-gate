@@ -19,6 +19,7 @@ from ..evaluation import score_roots
 from .development import (
     DEVELOPMENT,
     development_inventory,
+    model_digest,
     development_seeds,
     fit_fold,
     replay_root,
@@ -130,7 +131,10 @@ def _delivery_checks(intervals, fit, seed):
     return result
 
 
-def _validate_fold(fold, output):
+def _validate_fold(fold, output, producing_model):
+    protect_destination(output)
+    if model_digest() != producing_model:
+        raise ValueError("Sequential worker model differs from run start")
     roots = development_inventory()
     seeds = development_seeds(roots, SEED)
     training = [r for r in roots if r.fold != fold]
@@ -152,6 +156,7 @@ def _validate_fold(fold, output):
         if root.condition not in delivery:
             delivery[root.condition] = _delivery_checks(intervals, fit, seeds[root.key])
     report = dict(
+        model_digest=producing_model,
         training_digest=fit.training_digest,
         held_out=[r.key for r in held],
         diagnostics=fold_diagnostics(records, seed=SEED + fold),
@@ -200,14 +205,20 @@ def run(output, workers):
     output = Path(output)
     protect_destination(output)
     output.mkdir(exist_ok=False, parents=True)
+    producing_model = model_digest()
     start = perf_counter()
     try:
         with ProcessPoolExecutor(workers) as pool:
-            folds = list(pool.map(_validate_fold, range(5), [output] * 5))
+            folds = list(
+                pool.map(_validate_fold, range(5), [output] * 5, [producing_model] * 5)
+            )
+        if model_digest() != producing_model:
+            raise ValueError("Sequential model changed during validation")
         rows = [r for fold in folds for r in fold["roots"]]
         flags = repeatable_discrepancies([f["diagnostics"] for f in folds])
         # Each OOF root is scored against exactly its own held-out action outcomes.
         report = dict(
+            model_digest=producing_model,
             status="requires-review",
             particles=PARTICLES,
             forecast_pairs=PAIRS,

@@ -7,7 +7,7 @@ import json
 import numpy as np
 
 from simulator.config import SECOND
-from .development import development_inventory, replay_root
+from .development import development_inventory, physical_digest, replay_root
 from .development_replay import PhaseDiagnostic
 from ..physical import Closure, matched_pair, propagate
 
@@ -193,6 +193,7 @@ def _run_fold(task):
 
 def phase_challenge(workers=3):
     """Fit reconstruction on four folds; challenge it on identical histories in the fifth."""
+    producing_physics = physical_digest()
     roots = development_inventory()
     random = np.random.default_rng(SEED)
     assigned = random.permutation(len(roots))
@@ -208,9 +209,12 @@ def phase_challenge(workers=3):
             ]
             tasks.append((fold, train, valid))
         results = list(pool.map(_run_fold, tasks))
+    if physical_digest() != producing_physics:
+        raise ValueError("Physical model changed during the phase challenge")
     steps = [r for intervals, _, _ in results for r in intervals]
     actions = [r for _, cuts, _ in results for r in cuts]
     return dict(
+        physical_digest=producing_physics,
         seed=SEED,
         development_roots=len(roots),
         interval_repeats=INTERVAL_REPEATS,

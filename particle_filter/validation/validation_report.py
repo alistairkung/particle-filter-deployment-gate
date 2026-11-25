@@ -9,7 +9,7 @@ from telemetry_sufficiency.custody import file_hash, save
 
 from telemetry_sufficiency.archive import protect_destination
 
-from .development import study_source_digest
+from .development import model_digest, physical_digest, study_source_digest
 
 
 def _diagnostic_plot(folds, dest):
@@ -66,7 +66,13 @@ def summarise(teacher, sequential, phase, output):
         raise ValueError("incomplete teacher-forced evidence")
     if phase_report["development_roots"] != 1200 or sequence["roots"] != 36:
         raise ValueError("incomplete phase or sequential evidence")
-    output.mkdir(parents=True, exist_ok=False)
+    expected_model, expected_physics = model_digest(), physical_digest()
+    if phase_report.get("physical_digest") != expected_physics:
+        raise ValueError("Unbound or stale physical model in phase challenge")
+    if any(
+        r.get("model_digest") != expected_model for r in (teacher_summary, sequence)
+    ):
+        raise ValueError("Unbound or stale producing model in development validation")
     paths = dict(
         teacher=teacher / "summary.json",
         sequential=sequential / "sequential.json",
@@ -74,14 +80,21 @@ def summarise(teacher, sequential, phase, output):
     )
     for fold in range(5):
         a, b = teacher / f"fold-{fold}.json", sequential / f"fold-{fold}.json"
-        if (
-            json.loads(a.read_text())["training_digest"]
-            != json.loads(b.read_text())["training_digest"]
+        teacher_fold, sequential_fold = (
+            json.loads(a.read_text()),
+            json.loads(b.read_text()),
+        )
+        if any(
+            r.get("model_digest") != expected_model
+            for r in (teacher_fold, sequential_fold)
         ):
+            raise ValueError(f"Unbound or stale producing model in fold {fold}")
+        if teacher_fold["training_digest"] != sequential_fold["training_digest"]:
             raise ValueError(
                 "held-out teacher and sequential fits have different training roots"
             )
         paths[f"teacher_fold_{fold}"], paths[f"sequential_fold_{fold}"] = a, b
+    output.mkdir(parents=True, exist_ok=False)
     for name, directory in (("teacher", teacher), ("sequential", sequential)):
         folds = [
             json.loads((directory / f"fold-{i}.json").read_text()) for i in range(5)
@@ -93,6 +106,8 @@ def summarise(teacher, sequential, phase, output):
         status = "investigate"
     result = dict(
         status=status,
+        model_digest=teacher_summary["model_digest"],
+        physical_digest=phase_report["physical_digest"],
         source_digest=study_source_digest(),
         evidence_digests={
             os.path.relpath(p, output): file_hash(p) for p in paths.values()

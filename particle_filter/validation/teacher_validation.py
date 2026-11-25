@@ -12,7 +12,13 @@ import numpy as np
 
 from telemetry_sufficiency.archive import protect_destination
 
-from .development import development_inventory, fit_fold, replay_root, training_samples
+from .development import (
+    development_inventory,
+    fit_fold,
+    replay_root,
+    training_samples,
+    model_digest,
+)
 from .emission_diagnostics import (
     diagnostic_rows,
     fold_diagnostics,
@@ -24,8 +30,10 @@ def _dump_json(path, payload):
     path.write_text(json.dumps(payload, indent=2, allow_nan=False) + "\n")
 
 
-def _heldout_fold(fold, roots, replays, output, cache_fits):
+def _heldout_fold(fold, roots, replays, output, cache_fits, producing_model):
     protect_destination(output)
+    if model_digest() != producing_model:
+        raise ValueError("Teacher worker model differs from run start")
     rng = np.random.default_rng([57012026, fold])
     training = [root for root in roots if root.fold != fold]
     heldout = [root for root in roots if root.fold == fold]
@@ -66,6 +74,7 @@ def _heldout_fold(fold, roots, replays, output, cache_fits):
     unsmoothed = np.array(unsmoothed_scores)
     finite = np.isfinite(unsmoothed)
     report = {
+        "model_digest": producing_model,
         "fold": fold,
         "training_roots": len(training),
         "heldout_roots": len(heldout),
@@ -138,6 +147,7 @@ def run_teacher_validation(output, workers=4, *, cache_fits=False):
     output.mkdir(parents=True, exist_ok=True)
     if any(output.iterdir()):
         raise ValueError("Teacher-validation output directory must be empty")
+    producing_model = model_digest()
     roots = development_inventory()
     start = monotonic()
     reports = []
@@ -154,12 +164,23 @@ def run_teacher_validation(output, workers=4, *, cache_fits=False):
         # training roots. Pool processes bound simultaneous solver memory use.
         with ProcessPoolExecutor(max_workers=workers) as pool:
             tasks = [
-                pool.submit(_heldout_fold, fold, roots, replays, output, cache_fits)
+                pool.submit(
+                    _heldout_fold,
+                    fold,
+                    roots,
+                    replays,
+                    output,
+                    cache_fits,
+                    producing_model,
+                )
                 for fold in range(5)
             ]
             reports = [task.result() for task in tasks]
+        if model_digest() != producing_model:
+            raise ValueError("Teacher model changed during validation")
         flags = repeatable_discrepancies([r["diagnostics"] for r in reports])
         summary = {
+            "model_digest": producing_model,
             "kind": "held-out teacher-forced development diagnostics",
             "roots": len(roots),
             "intervals": sum(r["intervals"] for r in reports),

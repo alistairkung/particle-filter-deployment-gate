@@ -140,3 +140,59 @@ def development_seeds(roots, seed):
     """Assign independent seeds to inventory slots before forecasts or scoring."""
     random = np.random.default_rng([seed, 0])
     return {r.key: int(random.bit_generator.random_raw()) for r in roots}
+
+
+def _frozen_physical_files(repo):
+    return [
+        *sorted((repo / "simulator").glob("*.py")),
+        repo / "feasibility_pilot/configs/pilot.toml",
+        repo / "feasibility_pilot/experiments/config.py",
+        repo / "feasibility_pilot/experiments/observations.py",
+        repo / "telemetry_sufficiency/__init__.py",
+        repo / "telemetry_sufficiency/plant.py",
+        repo / "telemetry_sufficiency/results/v1/development/oof.parquet",
+        repo / "particle_filter/physical.py",
+        repo / "particle_filter/validation/development_replay.py",
+    ]
+
+
+def _model_fingerprint(repo, files, packages):
+    from hashlib import sha256
+    from importlib.metadata import version
+    import platform
+
+    combined = sha256()
+    combined.update(f"Python {platform.python_version()}\n".encode())
+    for package in packages:
+        combined.update(f"{package} {version(package)}\n".encode())
+    for path in sorted(files):
+        name = path.relative_to(repo).as_posix().encode()
+        combined.update(name + b"\0" + sha256(path.read_bytes()).digest())
+    return combined.hexdigest()
+
+
+def physical_digest():
+    """Fingerprint the development replay, FIFO transition and matched future law."""
+    repo = Path(__file__).resolve().parents[2]
+    return _model_fingerprint(
+        repo, _frozen_physical_files(repo), ("numpy", "simpy", "pyarrow")
+    )
+
+
+def model_digest():
+    """Bind the emitting, fitting and forecasting model used in each fold."""
+    repo = Path(__file__).resolve().parents[2]
+    study = repo / "particle_filter"
+    modules = [
+        "emissions",
+        "outbox_support",
+        "emission_families",
+        "inference",
+        "forecast",
+        "config",
+        "validation/development",
+        "validation/emission_diagnostics",
+    ]
+    files = _frozen_physical_files(repo) + [study / (name + ".py") for name in modules]
+    files.extend(study.glob("configs/*.toml"))
+    return _model_fingerprint(repo, files, ("numpy", "scipy", "simpy", "pyarrow"))
