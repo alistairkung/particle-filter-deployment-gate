@@ -13,7 +13,7 @@ At the 60-second decision cut, this study estimates the chance of a write-SLO br
 
 ## Run the development experiment
 
-Run from the **repository root** with the existing study environment. Choose a fresh output directory for each run. Particle and forecast-pair counts below are development settings. The convergence study determines whether a budget can be locked.
+Run from the **repository root** with the existing Python 3.14 study environment. On a fresh checkout, follow the [pilot environment setup](../feasibility_pilot/README.md) with the [numerical](../feasibility_pilot/requirements.lock) and [Parquet](../requirements-storage.lock) dependency locks. Choose a fresh output directory for each run. Particle and forecast-pair counts below are development settings. The convergence study determines whether a budget can be locked.
 
 ```sh
 PYTHON=feasibility_pilot/.venv/bin/python
@@ -31,7 +31,15 @@ The default run fits on four development folds and forecasts the preselected pan
 | [half-life-60](configs/half-life-60.toml) | 60 s | Joint posterior draw |
 | [half-life-240](configs/half-life-240.toml) | 240 s | Joint posterior draw |
 
-Use one or more `--variant` arguments to run a subset. Each file is checked against the reviewed configuration before the experiment begins. [Configuration checks](config.py)
+Use one or more `--variant` arguments to run a subset. To produce a separate directory per variant:
+
+```sh
+for variant in full regime-conditional-work half-life-60 half-life-240; do
+  "$PYTHON" -m particle_filter "/tmp/pf-single-$variant" --variant "$variant" --particles 128 --pairs 64
+done
+```
+
+Each file is checked against the reviewed configuration before the experiment begins. [Configuration checks](config.py)
 
 ## Reproduce the development checks
 
