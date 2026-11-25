@@ -1,0 +1,3 @@
+name = "regime-conditional-work"
+half_life_seconds = 120
+cut_work = "development-given-regime"
