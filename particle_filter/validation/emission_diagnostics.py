@@ -15,7 +15,7 @@ from ..emission_families import (
 )
 from ..outbox_support import (
     BAND_UPPER,
-    MAX_MARKS,
+    mark_capacity,
     age_support,
     feasible_bands,
     feasible_delay_bands,
@@ -58,7 +58,7 @@ def _count_events(
     # possible mark count, including the extrapolated zero-mark tail.
     for start in range(0, len(base), 16):
         part = slice(start, start + 16)
-        cap = MAX_MARKS[reg[part]]
+        cap = mark_capacity(reg[part], prev[part])
         marks = np.arange(cap.max() + 1)
         logmass = mark_logmass(
             marks, centre[part, None], scale[part, None], cap[:, None]
@@ -136,7 +136,7 @@ def diagnostic_rows(model, contexts, reading, weights, thresholds, rng):
         )
     }
 
-    cap = MAX_MARKS[reg]
+    cap = mark_capacity(reg, prev)
     with np.errstate(divide="ignore"):
         logw = np.log(weights)
     logmarks = np.where(marks <= cap, mark_logmass(marks, centre, scale, cap), -np.inf)
@@ -200,7 +200,7 @@ def diagnostic_rows(model, contexts, reading, weights, thresholds, rng):
             reg, np.column_stack((timing_features, np.full(len(reg), band)))
         )
         delay_probs = model.delay.probabilities(
-            x, feasible_delay_bands(reg, marks, prev, prior_age, age)
+            x, feasible_delay_bands(reg, marks, prev, prior_age, age, pending)
         )
         for j, p in enumerate(np.exp(logw) @ delay_probs):
             rows[f"delay_band_{j}_given_age_{band}"] = (
