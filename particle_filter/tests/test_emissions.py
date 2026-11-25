@@ -40,6 +40,96 @@ def training():
     return rows
 
 
+@pytest.mark.parametrize(("previous", "marks"), [(8, 3), (3, 8), (0, 8)])
+def test_pending_excess_has_hurdle_and_normalised_truncated_commit_mass(
+    previous, marks
+):
+    from scipy.stats import nbinom
+    from particle_filter.model.emission_families import PendingExcess
+
+    lower = max(0, previous - marks)
+    required = max(0, marks - previous)
+    pending = lower + np.arange(401)
+    commits = pending + marks - previous
+    assert np.array_equal(commits, required + np.arange(401))
+    law = PendingExcess(
+        np.full(len(pending), math.log(3)),
+        np.full(len(pending), math.log(6)),
+        np.full(len(pending), math.log(4)),
+        np.full(len(pending), required),
+    )
+    mass = np.exp(law.log_mass(pending - lower))
+    expected = nbinom(4, 4 / (4 + 6))
+    assert mass[0] == pytest.approx(0.75)
+    assert mass[1:] == pytest.approx(
+        0.25 * expected.pmf(commits[1:]) / expected.sf(required)
+    )
+    assert mass.sum() == pytest.approx(1.0)
+    assert law.survival(pending - lower) == pytest.approx(1 - np.cumsum(mass))
+    assert law.survival(-1)[0] == 1
+    assert law.log_mass(np.full(len(pending), -1))[0] == -np.inf
+
+
+@pytest.mark.parametrize(
+    ("mean", "size", "offset"), [(-30.0, 0.0, 95), (-17.22, 9.33, 57)]
+)
+def test_truncated_commit_mass_is_finite_when_tail_underflows(mean, size, offset):
+    from particle_filter.model.emission_families import PendingExcess
+
+    law = PendingExcess(
+        np.zeros(2), np.full(2, mean), np.full(2, size), np.full(2, offset)
+    )
+    mass = np.exp(law.log_mass([0, 1]))
+    survival = law.survival([0, 1])
+    assert mass == pytest.approx([0.5, 0.5])
+    assert survival[0] == pytest.approx(0.5)
+    assert 0 < survival[1] < 1.0e-8
+    assert mass.sum() + survival[1] == pytest.approx(1.0, abs=1.0e-10)
+
+
+def test_commit_model_applies_only_to_slow_particles_with_fresh_readings():
+    from particle_filter.model.likelihood import _context_columns
+
+    samples = training()
+    fresh_samples = []
+    for context, observation in samples:
+        if context.regime == "C":
+            start = START + INTERVAL
+            prior = reading(START, 0, 0.0, 8, 0.06)
+            fresh_samples.append(
+                (
+                    replace(context, prior=prior, start_ns=start),
+                    reading(
+                        start,
+                        observation.pending_count,
+                        observation.oldest_pending_age_s,
+                        round(5 * observation.publication_throughput_per_s),
+                        observation.completed_delay_median_s,
+                    ),
+                )
+            )
+    model = fit_emission(samples + fresh_samples)
+    context = fresh_samples[-1][0]
+    start = context.start_ns + INTERVAL
+    contexts = [
+        context,
+        replace(context, start_ns=start),
+        replace(context, start_ns=start, prior=None),
+        replace(context, regime="A"),
+        replace(context, regime="B"),
+        Context("C", 0.0, 0.0, None, START),
+    ]
+    regime, features, previous, _ = _context_columns(contexts)
+    arguments = regime, features, previous, np.full(len(contexts), 10)
+    fitted = model.pending_excess(*arguments)
+    baseline = replace(model, new_commits=None).pending_excess(*arguments)
+    assert model.new_commits is not None
+    assert np.array_equal(fitted.offset, [10, 0, 0, 0, 0, 0])
+    assert np.array_equal(fitted.hurdle_logit, baseline.hurdle_logit)
+    assert np.array_equal(fitted.mean_log[1:], baseline.mean_log[1:])
+    assert np.array_equal(fitted.size_log[1:], baseline.size_log[1:])
+
+
 def test_fitted_likelihood_preserves_zero_mark_support_and_exact_inherited_age():
     model = fit_emission(training())
     prior = reading(START, 2, 0.25, 8, 0.031)

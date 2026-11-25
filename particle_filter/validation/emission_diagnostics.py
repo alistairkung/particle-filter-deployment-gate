@@ -3,15 +3,13 @@
 from collections import defaultdict
 
 import numpy as np
-from scipy.special import betainc, expit, log_expit, logsumexp
+from scipy.special import expit, logsumexp
 
 from simulator.observations import INTERVAL
 from ..model.likelihood import _context_columns
 from ..model.regimes import REGIMES
 from ..model.emission_families import (
     mark_logmass,
-    nb_log_parameters,
-    positive_nb_logmass,
     normal_interval,
 )
 from ..model.outbox_support import (
@@ -35,22 +33,6 @@ def training_thresholds(samples):
     }
 
 
-def _pending_survival(k, log_excess, mean_log, size_log):
-    """P(N > threshold) where k is the threshold minus the physical lower bound."""
-    size, _, logq, log_positive = nb_log_parameters(mean_log, size_log)
-    # NB positive-excess conditional survival is sf(k)/(1-pmf(0)) for k > 0.
-    # P(N > L) and P(N > a value below L) are available without special functions.
-    result = np.where(k < 0, 1.0, np.exp(log_excess))
-    positive = k > 0
-    if positive.any():
-        sf = betainc(k[positive] + 1, size, np.exp(logq[positive]))
-        with np.errstate(divide="ignore"):
-            result[positive] = np.exp(
-                log_excess[positive] + np.log(sf) - log_positive[positive]
-            )
-    return np.clip(result, 0.0, 1.0)
-
-
 def _count_events(
     model, reg, base, prev, centre, scale, weights, mark_tail, backlog_tail
 ):
@@ -67,17 +49,18 @@ def _count_events(
         mass = np.where(marks <= cap[:, None], np.exp(logmass), 0.0)
         mass *= weights[part, None]
         ncols = len(marks)
-        grid = np.broadcast_to(marks, mass.shape).ravel()
-        features = np.column_stack((np.repeat(base[part], ncols, axis=0), grid))
-        x = model.designs[1].matrix(np.repeat(reg[part], ncols), features)
-        lower = np.maximum(0, np.repeat(prev[part], ncols) - grid)
-        log_excess = log_expit(-(x @ model.hurdle))
-        mean_log = x @ model.nb[:-1]
+        grid = np.minimum(marks, cap[:, None]).ravel()
+        prior_counts = np.repeat(prev[part], ncols)
+        law = model.pending_excess(
+            np.repeat(reg[part], ncols),
+            np.repeat(base[part], ncols, axis=0),
+            prior_counts,
+            grid,
+        )
+        lower = np.maximum(0, prior_counts - grid)
         # A strictly positive lower bound rules out an empty outbox.
-        empty = np.where(lower == 0, expit(x @ model.hurdle), 0.0).reshape(mass.shape)
-        backlog = _pending_survival(
-            np.floor(backlog_tail) - lower, log_excess, mean_log, model.nb[-1]
-        ).reshape(mass.shape)
+        empty = np.where(lower == 0, expit(law.hurdle_logit), 0.0).reshape(mass.shape)
+        backlog = law.survival(np.floor(backlog_tail) - lower).reshape(mass.shape)
         high_marks = marks > mark_tail
         total += (
             mass[:, high_marks].sum(),
@@ -155,21 +138,12 @@ def diagnostic_rows(model, contexts, reading, weights, thresholds, rng):
     logw = _condition(logw, logmarks)
     mark_weights = np.exp(logw)
 
-    pending_features = np.column_stack((base, np.full(len(reg), marks)))
-    x = model.designs[1].matrix(reg, pending_features)
+    observed_marks = np.full(len(reg), marks)
+    pending_features = np.column_stack((base, observed_marks))
     excess = pending - np.maximum(0, prev - marks)
-    logit = x @ model.hurdle
-    mean_log = x @ model.nb[:-1]
-    logpending = np.full(len(reg), -np.inf)
-    at_lower = excess == 0
-    positive = excess > 0
-    logpending[at_lower] = log_expit(logit[at_lower])
-    logpending[positive] = log_expit(-logit[positive]) + positive_nb_logmass(
-        excess[positive], mean_log[positive], model.nb[-1]
-    )
-    pending_left = 1 - _pending_survival(
-        excess - 1, log_expit(-logit), mean_log, model.nb[-1]
-    )
+    law = model.pending_excess(reg, base, prev, observed_marks)
+    logpending = law.log_mass(excess)
+    pending_left = 1 - law.survival(excess - 1)
     rows["pending_pit"] = (
         float(mark_weights @ (pending_left + rng.random() * np.exp(logpending))),
         0.5,

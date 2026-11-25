@@ -2,7 +2,7 @@
 
 At the 60-second decision cut, this study estimates the chance of a write-SLO breach if Java traffic stays at 25% or increases to 60%. The forecast reports both probabilities and their signed difference, promote minus hold. Implementation and development validation are authorised. Generating or accessing the 300 protected roots requires successful development validation, locked methods, verified runtime and separate owner approval.
 
-**Current development result.** The fitted likelihood missed the slow-publisher backlog tail on held-out roots. The development comparison with temporal history was inconclusive. Method lock is withheld. [Results, uncertainty intervals and a worked forecast](results/development/README.md)
+**Current development result.** The issue #15 correction improved the held-out slow-publisher backlog tail. Conditional-delay and serial-residual discrepancies remain. Method lock is withheld. [Issue #15 calibration evidence](results/issue-15/README.md) · [Original results, uncertainty intervals and a worked forecast](results/development/README.md)
 
 ## Follow one observation
 
