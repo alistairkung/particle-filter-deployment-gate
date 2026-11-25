@@ -151,12 +151,12 @@ def report(run, manifest, workers):
         "",
         "## 3. Do outbox observations predict contention and future promotion harm?",
         "",
-        "| Confirmatory claim | Development-selected level | Roots | Gain over best constant | Simultaneous lower bound | Supported |",
-        "|---|---|---:|---:|---:|---|",
+        "| Confirmatory claim | Development-selected level | Roots | Gain over prior | Gain over best constant | SE | Simultaneous lower bound | Supported |",
+        "|---|---|---:|---:|---:|---:|---:|---|",
     ]
     for name, r in claims.items():
         text.append(
-            f"| {name} | {r['candidate']} | {r['n']} | {r['gain']:+.6f} | {r['lower']:+.6f} | {'yes' if r['passes'] else 'no'} |"
+            f"| {name} | {r['candidate']} | {r['n']} | {r['prior_gain']:+.6f} | {r['gain']:+.6f} | {r['se']:.6f} | {r['lower']:+.6f} | {'yes' if r['passes'] else 'no'} |"
         )
     text += [
         "",
