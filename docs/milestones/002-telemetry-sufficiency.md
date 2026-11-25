@@ -21,3 +21,5 @@ History improved absolute hold and promote breach forecasts over the complete cu
 **The protected results are historical evidence.** Future particle-filter experiments must use fresh independent protected roots, keep every descendant of a root in the same partition, and exclude historical protected outcomes from estimator, likelihood, threshold and model-selection tuning.
 
 The next research question is whether particle filtering improves held-out counterfactual forecasts over current-value and simple temporal baselines. Deployment benefits depend on decision costs and a gate evaluation beyond this milestone. The [promotion plan](../simulator-v1-promotion.md) describes the proposed extraction and subsequent freeze approval.
+
+The [storage verification summary](../../evidence_migration/README.md) records the independent value-level comparison with the original evidence and the commands for reconstructing the archived results.
