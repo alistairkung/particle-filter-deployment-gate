@@ -129,7 +129,7 @@ def test_fifo_timing_respects_age_of_oldest_possible_row_and_observation_horizon
     model = fit_emission(training())
     p = reading(START, 8, 1.0, 2, 0.01)
     context = Context("A", 0.1, 0.1, p, p.interval_end_ns)
-    observed = reading(context.start_ns, 7, 5.1, 1, 1.0)
+    observed = reading(context.start_ns, 7, 5.1, 1, 1.000000001)
     assert math.isfinite(model.log_likelihood(context, observed))
     assert (
         model.log_likelihood(context, replace(observed, oldest_pending_age_s=6.1))
@@ -156,11 +156,11 @@ def test_mixture_update_uses_hypothetical_regime_capacity_without_counting_throu
         model.log_likelihood(replace(nominal, prior=observed), observed)
 
 
-@pytest.mark.parametrize(("marks", "limit"), [(3, 5.0), (4, 4.974)])
+@pytest.mark.parametrize(("marks", "limit"), [(3, 4.998999999), (4, 4.972499999)])
 def test_delay_median_respects_one_inherited_mark_and_new_commits(marks, limit):
     # One inherited row (age 12s), all other marks must be for new commits.
-    # Three delay upper bounds are 16.896, 4.948, 5s, with median 5s.
-    # Four are 16.844, 4.896, 4.948, 5s, with median 4.974s.
+    # A new commit is at least one tick after start. Each later commit
+    # also consumes a 1 ms insert on the same FIFO server.
     model = fit_emission(training())
     p = reading(START + 3 * INTERVAL, 1, 12.0, 7, 0.02)
     c = Context("C", 0.1, 0.1, p, p.interval_end_ns)
@@ -170,5 +170,41 @@ def test_delay_median_respects_one_inherited_mark_and_new_commits(marks, limit):
         model.log_likelihood(c, replace(o, completed_delay_median_s=limit + 1.0e-8))
         == -math.inf
     )
-    # A single inherited mark can have started its acknowledgement in nominal A.
-    assert math.isfinite(model.log_likelihood(c, reading(c.start_ns, 0, 0.0, 1, 0.004)))
+    # An old row already at age 12s is necessarily the first completed mark.
+    assert model.log_likelihood(c, reading(c.start_ns, 0, 0.0, 1, 0.004)) == -math.inf
+    assert math.isfinite(
+        model.log_likelihood(c, reading(c.start_ns, 0, 0.0, 1, 12.000000001))
+    )
+    young = replace(c, prior=replace(p, oldest_pending_age_s=0.003))
+    assert math.isfinite(
+        model.log_likelihood(young, reading(c.start_ns, 0, 0.0, 1, 0.004))
+    )
+
+
+def test_all_inherited_marks_have_committed_before_interval_start():
+    model = fit_emission(training())
+    p = reading(START + 3 * INTERVAL, 5, 1.0, 20, 0.1)
+    c = Context("C", 0.01, 0.02, p, p.interval_end_ns)
+    assert model.log_likelihood(c, reading(c.start_ns, 0, 0.0, 5, 0.103)) == -math.inf
+    # First row is at least 1s old. Even in earliest FIFO completion order,
+    # remaining marks require 52,104,156,208 ms past the first open-left tick.
+    assert model.log_likelihood(c, reading(c.start_ns, 0, 0.0, 5, 0.156)) == -math.inf
+    assert math.isfinite(model.log_likelihood(c, reading(c.start_ns, 0, 0.0, 5, 0.158)))
+
+
+@pytest.mark.parametrize(("z", "marks"), [("C", 97), ("A", 1250)])
+def test_empty_start_excludes_the_mark_requiring_an_inherited_visit(z, marks):
+    from particle_filter.validation.emission_diagnostics import diagnostic_rows
+
+    model = fit_emission(training())
+    p = reading(START, 0, 0.0, 8, 0.031)
+    c = Context(z, 0.01, 0.02, p, p.interval_end_ns)
+    o = reading(c.start_ns, 0, 0.0, marks, 0.2)
+    assert model.log_likelihood(c, o) == -math.inf
+    permitted = reading(c.start_ns, 0, 0.0, 10, 0.2)
+    checks = diagnostic_rows(
+        model, [c], permitted, [1.0], (marks - 1, 5), np.random.default_rng(85)
+    )
+    assert checks["mark_tail"] == (0.0, 0.0)
+    c = replace(c, prior=replace(p, pending_count=1, oldest_pending_age_s=0.003))
+    assert math.isfinite(model.log_likelihood(c, o))

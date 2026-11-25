@@ -7,7 +7,7 @@ from scipy.special import log_expit
 from simulator.observations import SECOND, START, Reading
 from .outbox_support import (
     BAND_UPPER,
-    MAX_MARKS,
+    mark_capacity,
     feasible_delay_bands,
     observation_support,
 )
@@ -132,7 +132,10 @@ class Emission:
         )
         x = self.designs[0].matrix(reg, base)
         mass = mark_logmass(
-            marks, x @ self.marks[:-3], np.exp(self.marks[-3:][reg]), MAX_MARKS[reg]
+            marks,
+            x @ self.marks[:-3],
+            np.exp(self.marks[-3:][reg]),
+            mark_capacity(reg, prev),
         )
         pending_features = np.column_stack((base, marks))
         x = self.designs[1].matrix(reg, pending_features)
@@ -160,6 +163,7 @@ class Emission:
                 prev[defined],
                 prev_age[defined],
                 age[defined],
+                pending[defined],
             ),
             smoothing,
         )
@@ -203,7 +207,7 @@ def fit_emission(samples):
         return design.matrix(reg[subset], features[subset])
 
     all_rows = np.ones(len(marks), dtype=bool)
-    marks_fit = fit_marks(matrix(base, all_rows), reg, marks)
+    marks_fit = fit_marks(matrix(base, all_rows), reg, marks, mark_capacity(reg, prev))
     pending_features = np.column_stack((base, marks))
     hurdle, nb = fit_pending(matrix(pending_features, all_rows), pending - lower)
     timing_features = np.column_stack((pending_features, pending))
@@ -218,7 +222,12 @@ def fit_emission(samples):
         dx,
         np.searchsorted(BAND_UPPER, delay[defined]),
         feasible_delay_bands(
-            reg[defined], marks[defined], prev[defined], prev_age[defined], age[defined]
+            reg[defined],
+            marks[defined],
+            prev[defined],
+            prev_age[defined],
+            age[defined],
+            pending[defined],
         ),
     )
     return Emission(tuple(designs), marks_fit, hurdle, nb, age_fit, delay_fit)
