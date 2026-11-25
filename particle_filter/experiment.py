@@ -23,8 +23,12 @@ from .forecast import forecast
 from .inference import infer
 
 
-def predict_variants(history, fit, variants, *, particles, pairs, seed):
+def predict_variants(
+    history, fit, variants, *, particles, pairs, seed, forecast_seed=None
+):
     """The same posterior feeds full and ablated forecasts at a given half-life."""
+    if forecast_seed is None:
+        forecast_seed = seed
     posteriors = {}
     results = {}
     for variant in variants:
@@ -42,7 +46,7 @@ def predict_variants(history, fit, variants, *, particles, pairs, seed):
             posterior,
             fit.closure,
             pairs=pairs,
-            seed=seed,
+            seed=forecast_seed,
             work_by_regime=fit.cut_work_ns if variant.replace_cut_work else None,
         )
         mean_work_s = posterior.mean_work_s
