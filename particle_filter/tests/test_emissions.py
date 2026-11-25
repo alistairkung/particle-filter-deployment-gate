@@ -208,3 +208,25 @@ def test_empty_start_excludes_the_mark_requiring_an_inherited_visit(z, marks):
     assert checks["mark_tail"] == (0.0, 0.0)
     c = replace(c, prior=replace(p, pending_count=1, oldest_pending_age_s=0.003))
     assert math.isfinite(model.log_likelihood(c, o))
+
+
+def test_age_bands_respect_insert_spacing_for_surviving_and_new_rows():
+    model = fit_emission(training())
+    p = reading(START, 5, 0.5, 8, 0.04)
+    c = Context("A", 0.1, 0.12, p, p.interval_end_ns)
+    survivors = reading(c.start_ns, 4, 5.001, 2, 0.51)
+    # Three inherited rows survive. Even the latest possible commit of the
+    # oldest survivor preceded the interval start by 2 ms.
+    assert model.log_likelihood(c, survivors) == -math.inf
+    assert math.isfinite(
+        model.log_likelihood(c, replace(survivors, oldest_pending_age_s=5.003))
+    )
+    all_new = reading(c.start_ns, 2, 0.0, 6, 0.6)
+    assert model.log_likelihood(c, all_new) == -math.inf
+    assert math.isfinite(
+        model.log_likelihood(c, replace(all_new, oldest_pending_age_s=0.002))
+    )
+    assert (
+        model.log_likelihood(c, replace(all_new, oldest_pending_age_s=4.9995))
+        == -math.inf
+    )

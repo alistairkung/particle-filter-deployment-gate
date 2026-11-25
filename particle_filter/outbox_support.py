@@ -11,8 +11,21 @@ BAND_UPPER = np.array([0.0, 0.025, 0.1, 0.5, 2.0, 5.0, 10.0, 20.0, np.inf])
 
 
 def age_support(count, marks, pending, previous_age):
-    lower = np.where((count >= 0) & (marks < count), 5.0, 0.0)
-    upper = np.where((count >= 0) & (marks >= count), 5.0, previous_age + 5.0)
+    # The oldest survivor precedes each of the other pending commits by
+    # at least one fixed insert. If it is inherited, the subsequent inherited
+    # survivors had also committed by the start. Each marked row precedes it.
+    inherited = (count >= 0) & (marks < count)
+    lower_ns = np.maximum(0, pending - 1) * MS
+    lower_ns = np.where(
+        inherited, np.maximum(lower_ns, HORIZON + (count - marks - 1) * MS), lower_ns
+    )
+    upper_ns = HORIZON + np.rint(previous_age * SECOND) - marks * MS
+    new = (count >= 0) & ~inherited
+    upper_ns = np.where(
+        new, np.minimum(upper_ns, HORIZON - 1 - (marks - count) * MS), upper_ns
+    )
+    lower = np.where(pending == 0, 0.0, lower_ns / SECOND)
+    upper = np.where(pending == 0, 0.0, upper_ns / SECOND)
     exact = np.where(
         pending == 0,
         0.0,
