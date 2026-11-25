@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 import numpy as np
-from scipy.special import log_expit
 
 from simulator.observations import SECOND, START, Reading
 from .outbox_support import (
@@ -13,10 +12,11 @@ from .outbox_support import (
 )
 from .emission_families import (
     OrdinalBands,
+    PendingExcess,
     fit_marks,
     fit_pending,
+    fit_positive_pending,
     mark_logmass,
-    positive_nb_logmass,
 )
 
 from .regimes import REGIMES
@@ -99,6 +99,21 @@ class Emission:
     nb: np.ndarray
     age: OrdinalBands
     delay: OrdinalBands
+    new_commits: np.ndarray | None
+
+    def pending_excess(self, reg, base, prev, marks):
+        x = self.designs[1].matrix(reg, np.column_stack((base, marks)))
+        mean_log = x @ self.nb[:-1]
+        size_log = np.full(len(x), self.nb[-1])
+        offset = np.zeros(len(x))
+        fresh_slow = _fresh_slow(reg, base, prev)
+        if self.new_commits is not None and fresh_slow.any():
+            mean_log[fresh_slow] = (
+                _commit_features(x[fresh_slow]) @ self.new_commits[:-1]
+            )
+            size_log[fresh_slow] = self.new_commits[-1]
+            offset[fresh_slow] = np.maximum(0, marks[fresh_slow] - prev[fresh_slow])
+        return PendingExcess(x @ self.hurdle, mean_log, size_log, offset)
 
     def _score(self, contexts, readings, smoothing):
         if any(
@@ -138,13 +153,7 @@ class Emission:
             mark_capacity(reg, prev),
         )
         pending_features = np.column_stack((base, marks))
-        x = self.designs[1].matrix(reg, pending_features)
-        excess = pending - lower
-        pos = excess > 0
-        mass += log_expit(np.where(pos, -1, 1) * (x @ self.hurdle))
-        mass[pos] += positive_nb_logmass(
-            excess[pos], x[pos] @ self.nb[:-1], self.nb[-1]
-        )
+        mass += self.pending_excess(reg, base, prev, marks).log_mass(pending - lower)
         timing_features = np.column_stack((pending_features, pending))
         band = np.searchsorted(BAND_UPPER, age)
         stochastic = np.isnan(exact)
@@ -181,6 +190,17 @@ class Emission:
         return float(self.log_likelihoods([context], reading, smoothing=smoothing)[0])
 
 
+def _fresh_slow(reg, base, prev):
+    # The cold-start count is a protocol constant. It does not denote a reading.
+    return (reg == REGIMES.index("C")) & (prev >= 0) & (base[:, 4] == 0)
+
+
+def _commit_features(pending_design):
+    # Intercept and the two standardised boundary-work features. Prior backlog
+    # enters the count law through conservation and the original hurdle.
+    return np.column_stack((np.ones(len(pending_design)), pending_design[:, 3:5]))
+
+
 def fit_emission(samples):
     """Fit on caller-supplied training intervals; retain only the conditional laws."""
     if not samples:
@@ -209,7 +229,23 @@ def fit_emission(samples):
     all_rows = np.ones(len(marks), dtype=bool)
     marks_fit = fit_marks(matrix(base, all_rows), reg, marks, mark_capacity(reg, prev))
     pending_features = np.column_stack((base, marks))
-    hurdle, nb = fit_pending(matrix(pending_features, all_rows), pending - lower)
+    pending_design = matrix(pending_features, all_rows)
+    excess = pending - lower
+    hurdle, nb = fit_pending(pending_design, excess)
+    fresh_slow_positive = _fresh_slow(reg, base, prev) & (excess > 0)
+    new_commits = None
+    if fresh_slow_positive.any():
+        selected = fresh_slow_positive
+        # N = n0 + commits - M. Positive excess means commits > max(0, M - n0).
+        offset = np.maximum(0, marks[selected] - prev[selected])
+        new_commits = fit_positive_pending(
+            "slow-publisher new commits",
+            _commit_features(pending_design[selected]),
+            excess[selected],
+            offset,
+            np.array([np.log(np.mean(excess[selected] + offset)), 0.0, 0.0]),
+            intercepts=1,
+        )
     timing_features = np.column_stack((pending_features, pending))
     band = np.searchsorted(BAND_UPPER, age)
     stochastic = np.isnan(exact)
@@ -230,4 +266,6 @@ def fit_emission(samples):
             pending[defined],
         ),
     )
-    return Emission(tuple(designs), marks_fit, hurdle, nb, age_fit, delay_fit)
+    return Emission(
+        tuple(designs), marks_fit, hurdle, nb, age_fit, delay_fit, new_commits
+    )

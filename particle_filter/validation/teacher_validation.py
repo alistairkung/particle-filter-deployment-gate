@@ -2,6 +2,7 @@
 
 import argparse
 from concurrent.futures import ProcessPoolExecutor
+from dataclasses import replace
 import gzip
 import json
 from pathlib import Path
@@ -12,6 +13,8 @@ import numpy as np
 
 from telemetry_sufficiency.archive import protect_destination
 from telemetry_sufficiency.custody import file_hash
+from simulator.observations import INTERVAL
+from ..model.likelihood import _context_columns
 
 from .development import (
     development_inventory,
@@ -22,6 +25,7 @@ from .development import (
     protocol_digest,
 )
 from .emission_diagnostics import (
+    _count_events,
     diagnostic_rows,
     fold_diagnostics,
     repeatable_discrepancies,
@@ -30,6 +34,42 @@ from .emission_diagnostics import (
 
 def _dump_json(path, payload):
     path.write_text(json.dumps(payload, indent=2, allow_nan=False) + "\n")
+
+
+def _compare_pending(model, baseline, context, reading, thresholds, current):
+    """Paired count diagnostics at the same physical state and held-out reading."""
+    reg, base, previous, _ = _context_columns([context])
+    marks = np.array([5 * reading.publication_throughput_per_s])
+    lower = np.maximum(0, previous - marks)
+    excess = reading.pending_count - lower
+    tail_at = np.floor(thresholds[1]) - lower
+    before = baseline.pending_excess(reg, base, previous, marks)
+    after = model.pending_excess(reg, base, previous, marks)
+    observed_tail, integrated_after = current["backlog_tail"]
+    integrated_before = integrated_after
+    if context.regime == "C":
+        design = baseline.designs[0].matrix(reg, base)
+        _, _, integrated_before, _ = _count_events(
+            baseline,
+            reg,
+            base,
+            previous,
+            design @ baseline.marks[:-3],
+            np.exp(baseline.marks[-3:][reg]),
+            np.ones(1),
+            *thresholds,
+        )
+    result = {
+        "conditional_log_mass_after_minus_before": (
+            float(after.log_mass(excess)[0]),
+            float(before.log_mass(excess)[0]),
+        ),
+        "given_marks_before": (observed_tail, float(before.survival(tail_at)[0])),
+        "given_marks_after": (observed_tail, float(after.survival(tail_at)[0])),
+        "integrated_before": (observed_tail, float(integrated_before)),
+        "integrated_after": (observed_tail, integrated_after),
+    }
+    return result
 
 
 def _heldout_fold(
@@ -46,6 +86,7 @@ def _heldout_fold(
     heldout = [root for root in roots if root.fold == fold]
     start = monotonic()
     fit = fit_fold(training, replays)
+    baseline = replace(fit.likelihood, new_commits=None)
     # Local fit cache for sequential checks from the same run. Its manifest
     # names the training inventory. Never unpickle externally supplied models.
     if cache_fits:
@@ -54,6 +95,7 @@ def _heldout_fold(
     records = []
     scores = []
     unsmoothed_scores = []
+    pending_records = []
     with gzip.open(output / f"intervals-{fold}.jsonl.gz", "xt") as stream:
         for root in heldout:
             for context, reading in training_samples([replays[root.key]]):
@@ -69,6 +111,22 @@ def _heldout_fold(
                     [1.0],
                     fit.thresholds[context.regime],
                     rng,
+                )
+                comparison = _compare_pending(
+                    fit.likelihood,
+                    baseline,
+                    context,
+                    reading,
+                    fit.thresholds[context.regime],
+                    metric,
+                )
+                if context.regime == "C" and reading.interval_end_ns in (-INTERVAL, 0):
+                    window = "penultimate" if reading.interval_end_ns else "final"
+                    comparison |= {
+                        f"{window}_{name}": pair for name, pair in comparison.items()
+                    }
+                pending_records.append(
+                    (root.key, context.regime, context.start_ns, comparison)
                 )
                 record = root.key, context.regime, context.start_ns, metric
                 with np.errstate(divide="ignore"):
@@ -99,6 +157,7 @@ def _heldout_fold(
         "minimum_joint_log_mass": min(scores),
         "seconds": monotonic() - start,
         "diagnostics": fold_diagnostics(records, seed=570120261 + fold),
+        "pending_comparison": fold_diagnostics(pending_records, seed=570120261 + fold),
     }
     _dump_json(output / f"fold-{fold}.json", report)
     return report

@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 import numpy as np
 from scipy.optimize import minimize
-from scipy.special import gammaln, log_expit, log_ndtr, logsumexp
+from scipy.special import betainc, betaincc, gammaln, log_expit, log_ndtr, logsumexp
 
 from .outbox_support import BAND_UPPER
 
@@ -74,23 +74,97 @@ def nb_log_parameters(mean_log, size_log):
     size = np.exp(size_log)
     with np.errstate(divide="ignore"):
         log_positive = np.where(
-            mean_log < -35.0 + min(0.0, size_log),
+            mean_log < -35.0 + np.minimum(0.0, size_log),
             mean_log,
             np.log(-np.expm1(size * log_success)),
         )
     return size, log_success, log_failure, log_positive
 
 
-def positive_nb_logmass(k, mean_log, size_log):
-    size, logp, logq, log_positive = nb_log_parameters(mean_log, size_log)
-    return (
-        gammaln(k + size)
-        - gammaln(size)
-        - gammaln(k + 1)
-        + size * logp
-        + k * logq
-        - log_positive
+def _nb_logmass(k, size, logp, logq):
+    return gammaln(k + size) - gammaln(size) - gammaln(k + 1) + size * logp + k * logq
+
+
+def _nb_log_survival(k, size, logp, logq, log_positive):
+    """Log P(count > k), including tails too small to represent in probability space."""
+    if np.all(np.asarray(k) == 0):
+        return log_positive
+    k, size, logp, logq, log_positive = np.broadcast_arrays(
+        k, size, logp, logq, log_positive
     )
+    q = np.exp(logq)
+    tail = np.array(betainc(k + 1, size, q))
+    rounded = q == 1
+    tail[rounded] = betaincc(size[rounded], k[rounded] + 1, np.exp(logp[rounded]))
+    with np.errstate(divide="ignore"):
+        out = np.where(k == 0, log_positive, np.log(tail))
+    underflow = (k > 0) & (tail < np.finfo(float).tiny)
+    out[underflow] = _nb_underflow_tail(
+        k[underflow] + 1, size[underflow], logp[underflow], logq[underflow]
+    )
+    return out
+
+
+def _nb_underflow_tail(first, size, logp, logq):
+    """Sum the deep upper tail relative to its first mass."""
+    q = np.exp(logq)
+    term = np.ones(len(first))
+    total = term.copy()
+    count = first.copy()
+    # Ratios converge monotonically to q. In this deep tail their upper bound
+    # is below one, so a geometric series bounds all remaining terms.
+    ratio = q * (count + size) / (count + 1)
+    bound = np.maximum(ratio, q)
+    while np.any(term * bound > np.finfo(float).eps * total * (1 - bound)):
+        term *= ratio
+        total += term
+        count += 1
+        ratio = q * (count + size) / (count + 1)
+    return _nb_logmass(first, size, logp, logq) + np.log(total)
+
+
+def positive_nb_logmass(k, mean_log, size_log, offset=0):
+    """Log mass of excess k > 0 when the underlying count is k + offset."""
+    size, logp, logq, log_positive = nb_log_parameters(mean_log, size_log)
+    return _nb_logmass(k + offset, size, logp, logq) - _nb_log_survival(
+        offset, size, logp, logq, log_positive
+    )
+
+
+@dataclass
+class PendingExcess:
+    hurdle_logit: np.ndarray
+    mean_log: np.ndarray
+    size_log: np.ndarray
+    offset: np.ndarray
+
+    def log_mass(self, excess):
+        excess = np.asarray(excess)
+        positive = excess > 0
+        mass = np.where(excess == 0, log_expit(self.hurdle_logit), -np.inf)
+        mass[positive] = log_expit(-self.hurdle_logit[positive]) + positive_nb_logmass(
+            excess[positive],
+            self.mean_log[positive],
+            self.size_log[positive],
+            self.offset[positive],
+        )
+        return mass
+
+    def survival(self, threshold):
+        threshold = np.broadcast_to(threshold, self.offset.shape)
+        log_positive = log_expit(-self.hurdle_logit)
+        probability = np.where(threshold < 0, 1.0, np.exp(log_positive))
+        positive = threshold > 0
+        size, logp, logq, log_tail = nb_log_parameters(
+            self.mean_log[positive], self.size_log[positive]
+        )
+        offset = self.offset[positive]
+        probability[positive] = np.exp(
+            log_positive[positive]
+            + _nb_log_survival(threshold[positive] + offset, size, logp, logq, log_tail)
+            - _nb_log_survival(offset, size, logp, logq, log_tail)
+        )
+        return np.clip(probability, 0.0, 1.0)
 
 
 def fit_pending(x, excess):
@@ -106,22 +180,25 @@ def fit_pending(x, excess):
         )
 
     hurdle = _estimate("pending hurdle", hurdle_loss, np.zeros(x.shape[1]))
-    positive = x[~at_lower]
-    k = excess[~at_lower]
-
-    def excess_loss(params):
-        beta = params[:-1]
-        return -positive_nb_logmass(k, positive @ beta, params[-1]).mean() + _penalty(
-            beta
-        )
-
-    nb = _estimate(
+    nb = fit_positive_pending(
         "positive pending excess",
-        excess_loss,
-        np.zeros(x.shape[1] + 1),
-        [(None, None)] * x.shape[1] + [(-8, 10)],
+        x[~at_lower],
+        excess[~at_lower],
+        0,
+        np.zeros(x.shape[1]),
     )
     return hurdle, nb
+
+
+def fit_positive_pending(name, x, excess, offset, initial, *, intercepts=3):
+    def loss(params):
+        beta, size = params[:-1], params[-1]
+        penalty = 0.5 * RIDGE * np.sum(beta[intercepts:] ** 2)
+        return -positive_nb_logmass(excess, x @ beta, size, offset).mean() + penalty
+
+    return _estimate(
+        name, loss, np.r_[initial, 0.0], [(None, None)] * x.shape[1] + [(-8, 10)]
+    )
 
 
 @dataclass

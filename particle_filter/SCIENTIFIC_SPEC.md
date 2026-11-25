@@ -105,6 +105,10 @@ Estimate parameters with regularised conditional likelihood on interval-aligned 
 
 Within each regime, compare held-out observed and predicted mark distributions, empty frequencies, joint count and backlog tails, and delay-band frequencies conditional on age and counts. Check successive one-step residuals for persistent bias or dependence. Quantify uncertainty by resampling whole roots. A repeatable discrepancy calls for investigating the affected factor and its physical support. Keep the scope of any revision tied to that discrepancy and document it before locking the fit. [Decision 9](../docs/adr/0011-initial-outbox-likelihood-families.md)
 
+### Slow-publisher pending-count correction
+
+For a proposed slow-publisher regime with a delivered, fresh starting count $n_0$, let $J$ be the number of new commits. Conservation gives $N=n_0+J-M$. The existing hurdle assigns the probability of $N=L$, with $L=\max(0,n_0-M)$. For any positive excess $e=N-L$, evaluate the negative-binomial mass at $J=e+\max(0,M-n_0)$ conditional on $J>\max(0,M-n_0)$. Fit this commit-count law from positive-excess development intervals, with its own dispersion and regularised effects of beginning and ending unfinished work. Inherited backlog enters through conservation and the existing hurdle. A stale or missing starting reading uses the initial pending-count law, including when cold-start information comes from the protocol. [Issue #15](https://github.com/alistairkung/particle-filter-deployment-gate/issues/15)
+
 ## Posterior action forecasts
 
 For each of $K$ pairs, sample $(Z_0,W_0)$ jointly using the decision-time particle weights. Reconstruct compatible publisher progress and pending obligations once from that draw and the available outbox history. Carry admitted work into both branches with identical residual work. An outstanding publisher visit already included in $W_0$ adds no second admission. The evaluator's true regime, queue, publisher phase, tapes and future random streams stay private. All methods receive the same permitted information and declared future workload assumptions. [Decision 10](../docs/adr/0012-matched-posterior-action-rollouts.md)
