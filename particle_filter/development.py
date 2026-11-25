@@ -8,7 +8,9 @@ from telemetry_sufficiency import CONDITIONS
 from telemetry_sufficiency.custody import digest
 from telemetry_sufficiency.parquet_evidence import rows
 
-DEVELOPMENT = Path(__file__).resolve().parents[1] / "telemetry_sufficiency/results/v1/development"
+DEVELOPMENT = (
+    Path(__file__).resolve().parents[1] / "telemetry_sufficiency/results/v1/development"
+)
 
 
 @dataclass(frozen=True)
@@ -36,8 +38,17 @@ def development_inventory():
             record = records.pop(key)
             if record["condition"] != condition or record["fold"] not in range(5):
                 raise ValueError("development fold or condition mismatch")
-            roots.append(DevelopmentRoot(key, condition, index, record["fold"], record["hold"],
-                                         record["promote"], record["unfinished"]))
+            roots.append(
+                DevelopmentRoot(
+                    key,
+                    condition,
+                    index,
+                    record["fold"],
+                    record["hold"],
+                    record["promote"],
+                    record["unfinished"],
+                )
+            )
     if records:
         raise ValueError("unexpected development roots")
     return roots
@@ -48,7 +59,9 @@ def replay_root(root):
 
     intervals = replay_development(root.condition, root.index)
     if intervals[-1].end.work_ns / SECOND != root.cut_work_s:
-        raise ArithmeticError(f"cut-work replay disagreement for development root {root.key}")
+        raise ArithmeticError(
+            f"cut-work replay disagreement for development root {root.key}"
+        )
     return intervals
 
 
@@ -59,8 +72,13 @@ def training_samples(replays):
         previous = None
         for interval in intervals:
             reading = interval.reading
-            context = Context(interval.regime, interval.start.work_ns / SECOND,
-                              interval.end.work_ns / SECOND, previous, reading.interval_start_ns)
+            context = Context(
+                interval.regime,
+                interval.start.work_ns / SECOND,
+                interval.end.work_ns / SECOND,
+                previous,
+                reading.interval_start_ns,
+            )
             yield context, reading
             previous = reading
 
@@ -85,5 +103,20 @@ def fit_fold(training, replays):
     for r in training:
         cut = replays[r.key][-1]
         work[cut.regime].append(cut.end.work_ns)
-    return FoldFit(fit_emission(samples), Closure(donors), work, training_thresholds(samples),
-                   digest("\n".join(sorted(r.key for r in training)).encode()))
+    return FoldFit(
+        fit_emission(samples),
+        Closure(donors),
+        work,
+        training_thresholds(samples),
+        digest("\n".join(sorted(r.key for r in training)).encode()),
+    )
+
+
+def study_source_digest():
+    from hashlib import sha256
+
+    source = Path(__file__).parent
+    combined = sha256()
+    for path in sorted(source.glob("*.py")):
+        combined.update(path.name.encode() + b"\0" + sha256(path.read_bytes()).digest())
+    return combined.hexdigest()
