@@ -5,7 +5,7 @@ import numpy as np
 from scipy.optimize import minimize
 from scipy.special import gammaln, log_expit, log_ndtr, logsumexp
 
-from .outbox_support import BAND_UPPER, MAX_MARKS
+from .outbox_support import BAND_UPPER
 
 
 RIDGE = 0.01
@@ -49,14 +49,14 @@ def _penalty(beta):
     return 0.5 * RIDGE * np.sum(beta[3:] ** 2)
 
 
-def fit_marks(x, regime, marks):
+def fit_marks(x, regime, marks, cap):
     intercept = [marks[regime == i].mean() for i in range(3)]
     spreads = [np.log(max(0.5, marks[regime == i].std())) for i in range(3)]
     initial = np.r_[intercept, np.zeros(x.shape[1] - 3), spreads]
 
     def loss(params):
         beta, spread = params[:-3], params[-3:]
-        logp = mark_logmass(marks, x @ beta, np.exp(spread[regime]), MAX_MARKS[regime])
+        logp = mark_logmass(marks, x @ beta, np.exp(spread[regime]), cap)
         return -logp.mean() + _penalty(beta)
 
     return _estimate(
