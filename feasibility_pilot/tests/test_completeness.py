@@ -106,3 +106,64 @@ def test_failed_report_archives_prior_conclusion_and_records_unaudited_status(
     archived = list((result / "history").glob("*/summary/verdict.json"))
     assert len(archived) == 1 and load_json(archived[0]) == {"verdict": "GO"}
     assert (archived[0].parents[1] / "report.md").read_text() == "old GO finding"
+
+
+def test_first_config_error_can_be_corrected_without_discarding_failure(tmp_path, monkeypatch):
+    import sys
+    from experiments.__main__ import main
+    from experiments.storage import load_json
+
+    result = tmp_path / "run"
+    argv = ["experiments", "validate", "--out", str(result), "--config"]
+    monkeypatch.setattr(sys, "argv", argv + [str(tmp_path / "missing.toml")])
+    with pytest.raises(FileNotFoundError):
+        main()
+    monkeypatch.setattr("experiments.validation.validate", lambda *args: {"passed": True})
+    monkeypatch.setattr(sys, "argv", argv + ["configs/pilot.toml"])
+    main()
+    manifest = load_json(result / "manifest.json")
+    assert manifest["signature"] and manifest["status"] == "validate complete"
+    assert len(list((result / "failures").glob("*.json"))) == 1
+
+
+def test_malformed_manifest_preserved_and_failed_publication_invalidated(tmp_path, monkeypatch):
+    import sys
+    from experiments.__main__ import main
+    from experiments.storage import load_json
+
+    result = tmp_path / "run"
+    save_json(result / "summary/verdict.json", {"verdict": "GO"})
+    (result / "manifest.json").write_text("{damaged")
+    report = result / "report.md"
+    monkeypatch.setattr(sys, "argv", [
+        "experiments", "report", "--from", str(result), "--plots", str(result / "plots"),
+        "--output", str(report),
+    ])
+    with pytest.raises(json.JSONDecodeError):
+        main()
+    assert next((result / "failures").glob("*-manifest.json")).read_text() == "{damaged"
+    assert load_json(result / "summary/verdict.json")["audited"] is False
+    assert "MODIFY / inconclusive" in report.read_text()
+    with pytest.raises(ValueError, match="Invalid prior manifest"):
+        main()
+
+
+def test_failed_report_to_new_path_also_invalidates_prior_publication(tmp_path, monkeypatch):
+    import sys
+    from experiments.__main__ import main
+    from experiments.storage import digest
+
+    old = tmp_path / "published.md"
+    new = tmp_path / "alternate.md"
+    old.write_text("old GO finding")
+    save_json(tmp_path / "manifest.json", {
+        "published_report": {"path": str(old), "sha256": digest(old)}
+    })
+    monkeypatch.setattr(sys, "argv", [
+        "experiments", "report", "--from", str(tmp_path), "--plots", str(tmp_path / "plots"),
+        "--output", str(new),
+    ])
+    with pytest.raises(FileNotFoundError):
+        main()
+    assert all("MODIFY / inconclusive" in p.read_text() for p in (old, new))
+    assert next((tmp_path / "history").glob("*/previous-publication.md")).read_text() == "old GO finding"

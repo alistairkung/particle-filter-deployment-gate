@@ -192,6 +192,26 @@ def mark_incomplete(out, report_path, reason):
         incomplete_report(report_path, out, reason)
 
 
+def previous_publication(manifest, out):
+    record = manifest.get("published_report")
+    if not isinstance(record, dict) or not isinstance(record.get("path"), str):
+        return None
+    candidate = Path(record["path"]).resolve()
+    if candidate.is_relative_to(BASE) or candidate.is_relative_to(out.resolve()):
+        if candidate.is_file() and digest(candidate) == record.get("sha256"):
+            return candidate
+    return None
+
+
+def archive_previous_report(out, prior, current):
+    if prior is not None and prior != current.resolve() and prior.is_file():
+        archive = out / "history" / str(time.time_ns())
+        archive.mkdir(parents=True)
+        shutil.move(prior, archive / "previous-publication.md")
+        return True
+    return False
+
+
 def render(c, out, signature, args, manifest):
     from experiments.audit import audit
     from experiments.integrity import verify_scientific_controls
@@ -264,18 +284,31 @@ def main():
     config_path = out / "pilot.toml" if args.command == "report" else args.config
     with exclusive_output(out):
         path = out / "manifest.json"
-        manifest = load_json(path) if path.exists() else {}
+        manifest = {}
         report_path = getattr(args, "output", None)
-        if report_path is None and manifest.get("published_report"):
-            previous = manifest["published_report"]
-            candidate = Path(previous["path"])
-            if candidate.is_file() and digest(candidate) == previous["sha256"]:
-                report_path = candidate
+        prior_report = None
         start = time.monotonic()
         try:
+            if path.exists():
+                try:
+                    loaded = load_json(path)
+                    if not isinstance(loaded, dict):
+                        raise ValueError("Manifest must contain an object")
+                    manifest = loaded
+                except (ValueError, UnicodeError):
+                    backup = out / "failures" / f"{time.time_ns()}-manifest.json"
+                    backup.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(path, backup)
+                    manifest["invalid_provenance"] = True
+                    raise
+            if manifest.get("invalid_provenance"):
+                raise ValueError("Invalid prior manifest; use a fresh output directory")
+            prior_report = previous_publication(manifest, out)
+            if report_path is None:
+                report_path = prior_report
             c = read_config(config_path)
             signature, files = identity(config_path)
-            if not manifest:
+            if not manifest or manifest.get("awaiting_config"):
                 manifest = new_manifest(config_path, c, signature, files)
             if manifest["signature"] != signature:
                 raise ValueError(
@@ -299,8 +332,11 @@ def main():
                 execute_scientific(c, out, signature, args.workers, manifest)
             else:
                 render(c, out, signature, args, manifest)
+                archive_previous_report(out, prior_report, args.output)
             manifest["status"] = args.command + " complete"
         except Exception as exc:
+            if not manifest:
+                manifest["awaiting_config"] = True
             manifest["status"] = args.command + " failed"
             message = f"{type(exc).__name__}: {exc}"
             save_json(
@@ -308,6 +344,8 @@ def main():
                 dict(stage=args.command, error=message),
             )
             mark_incomplete(out, report_path, message)
+            if archive_previous_report(out, prior_report, report_path):
+                incomplete_report(prior_report, out, message)
             raise
         finally:
             manifest.setdefault("timings_s", {})[args.command] = (
