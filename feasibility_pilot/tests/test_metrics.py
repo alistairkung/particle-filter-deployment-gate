@@ -133,53 +133,69 @@ def test_component_findings_survive_failed_publisher_control():
 def test_reconstruction_reads_window_counts_and_detects_wrong_persisted_difference(
     tmp_path,
 ):
-    import json
     from dataclasses import replace
 
     from experiments.audit import audit
+    from experiments.integrity import verify_scientific_controls
     from experiments.metrics import summarize
+    from experiments.storage import (
+        budgets,
+        compute_root,
+        load_json,
+        read_root,
+        save_json,
+    )
+    from experiments.validation import validate
 
     c = replace(
         read_config("configs/pilot.toml"),
+        seed=17,
+        warmup=1,
+        horizon=2,
+        window=1,
         migration_roots=4,
         overload_roots=4,
         publisher_roots=4,
         bootstrap=1000,
+        placebo_roots=1,
+        queue_rates=[50],
+        queue_roots=4,
+        queue_warmup=50,
+        queue_scored=500,
+        queue_tolerance=5,
     )
-    families = {
-        "C23": ("ref_hold", "ref_promote", "high_hold", "high_promote"),
-        "C4": ("ruby", "hold", "promote"),
-        "C5": ("nominal", "slow"),
-    }
-    roots = {family: [] for family in families}
-    for family, arms in families.items():
-        folder = tmp_path / "branches" / family
-        folder.mkdir(parents=True)
-        for root_id in range(4):
-            branches = {}
-            for arm in arms:
-                missed = int(
-                    arm == "high_promote" or (arm == "ref_promote" and root_id == 0)
-                )
-                windows = [
-                    {
-                        "window": i + 1,
-                        "misses": missed,
-                        "eligible": 10,
-                        "breach": bool(missed),
-                        "age_s": 5.0 if arm == "slow" else 0.0,
-                        "pending": int(arm == "slow"),
-                        "empty": arm != "slow",
-                    }
-                    for i in range(4)
-                ]
-                branches[arm] = {"breach": missed, "windows": windows, "scored": 40}
-            roots[family].append(branches)
-            (folder / f"{root_id:04d}.json").write_text(
-                json.dumps({"root": root_id, "family": family, "branches": branches})
-            )
+    signature = "development"
+    checks = validate(c, tmp_path, workers=1)
+    save_json(tmp_path / "validation/result.json", {**checks, "signature": signature})
+    assert checks["passed"]
+    roots = {}
+    for family, size in budgets(c).items():
+        roots[family] = []
+        for idx in range(size):
+            compute_root((c, tmp_path, family, idx, signature))
+            roots[family].append(read_root(tmp_path, c, family, idx, signature))
     summary = summarize(c, roots, True)
+    with pytest.raises(FileNotFoundError):
+        audit(c, tmp_path, summary, True)
+    integrity = verify_scientific_controls(c, tmp_path, roots)
+    save_json(tmp_path / "validation/workload-integrity.json", integrity)
     assert audit(c, tmp_path, summary, True)["verified"] is True
-    summary["migration"]["high"]["lower"] += 0.01
+    changed = dict(summary, migration=dict(summary["migration"]))
+    changed["migration"]["high"] = dict(summary["migration"]["high"])
+    changed["migration"]["high"]["lower"] += 0.01
     with pytest.raises(ValueError, match="migration.high.lower"):
+        audit(c, tmp_path, changed, True)
+    migration_path = tmp_path / "branches/C23/0000.json"
+    original = load_json(migration_path)
+    changed = load_json(migration_path)
+    changed["branches"]["high_hold"]["cut"] = "different"
+    save_json(migration_path, changed)
+    with pytest.raises(ValueError, match="unmatched decision states"):
+        audit(c, tmp_path, summary, True)
+    save_json(migration_path, original)
+    path = tmp_path / "branches/C4/0000.json"
+    raw = load_json(path)
+    raw["branches"]["ruby"]["windows"][0]["work_s"] += 1
+    save_json(path, raw)
+    with pytest.raises(ValueError, match="growth"):
         audit(c, tmp_path, summary, True)

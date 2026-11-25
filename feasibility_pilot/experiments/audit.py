@@ -15,7 +15,84 @@ from scipy.stats import binom, sem, t
 from experiments.config import read_config
 
 
-def _read_evidence(directory, family, arm_names, n, c):
+def _verify_migration_pairing(branches):
+    for window_set in zip(*(row["windows"] for row in branches.values()), strict=True):
+        if len({row["eligible"] for row in window_set}) != 1:
+            raise ValueError("C23: unmatched denominator")
+    for routing in ("hold", "promote"):
+        ref, high = (branches[f"{regime}_{routing}"] for regime in ("ref", "high"))
+        for left, right in zip(ref["windows"], high["windows"], strict=True):
+            if left["db"]["write"]["offered_s"] != right["db"]["write"]["offered_s"]:
+                raise ValueError("C23: unequal matched application work")
+            if right["db"]["query"]["offered_s"] < left["db"]["query"]["offered_s"]:
+                raise ValueError("C23: reference queries missing at higher demand")
+    for regime in ("ref", "high"):
+        for left, right in zip(
+            branches[f"{regime}_hold"]["windows"],
+            branches[f"{regime}_promote"]["windows"],
+            strict=True,
+        ):
+            if left["db"]["query"]["offered_s"] != right["db"]["query"]["offered_s"]:
+                raise ValueError("C23: unequal background work across routing arms")
+
+
+def _verify_overload_work(windows, c):
+    previous = None
+    for window in windows:
+        begin = window["work_start_s"] + window["deferred_start_s"]
+        end = window["work_s"] + window["deferred_s"]
+        performed = window["utilisation"] * c.window
+        if not isclose(
+            begin + window["realised_cohort_work_s"] - performed, end, abs_tol=1e-8
+        ):
+            raise ValueError("C4: unfinished-work growth cannot be reconciled")
+        if previous is not None and (
+            previous["queue"] != window["queue_start"]
+            or not isclose(previous["work_s"], window["work_start_s"], abs_tol=1e-8)
+        ):
+            raise ValueError("C4: inconsistent consecutive queue snapshots")
+        previous = window
+
+
+def _verify_workload(record, family, c):
+    branches = record["branches"]
+    paired = (
+        [branches["hold"], branches["promote"]] if family == "C4" else branches.values()
+    )
+    if len({row["cut"] for row in paired}) != 1:
+        raise ValueError(f"{family}: unmatched decision states")
+    if family == "C23":
+        _verify_migration_pairing(branches)
+    for name, branch in branches.items():
+        expected_share = c.promote if name.endswith("promote") else c.hold
+        rate = c.reference + (c.extra if name.startswith("high_") else 0)
+        if family == "C4":
+            rate = c.overload
+            if name == "ruby":
+                expected_share = 0
+                if branch["java_arrivals"] != 0:
+                    raise ValueError("C4: Java arrivals in the all-Ruby branch")
+            _verify_overload_work(branch["windows"], c)
+        elif family == "C5":
+            rate = 0
+        load = rate * c.query_ms / 1000 + c.writes / 1000 * (
+            c.ruby_ms * (1 - expected_share)
+            + c.java_ms * expected_share
+            + c.insert_ms
+            + c.claim_ms
+            + c.mark_ms
+        )
+        if (
+            expected_share != branch["share"]
+            or rate != branch["query_rate"]
+            or not isclose(load, branch["expected_load"])
+        ):
+            raise ValueError(f"{family}/{name}: frozen scenario assignment mismatch")
+        if family == "C4" and name == "ruby" and load <= 1:
+            raise ValueError("C4: expected all-Ruby load must exceed capacity")
+
+
+def _read_evidence(directory, family, arm_names, n, c, signature):
     outcomes = {arm: [] for arm in arm_names}
     ages = []
     for root_id in range(n):
@@ -25,6 +102,9 @@ def _read_evidence(directory, family, arm_names, n, c):
             raise ValueError(f"{path}: root identity mismatch")
         if set(record["branches"]) != set(arm_names):
             raise ValueError(f"{path}: invalid arm set")
+        if record["signature"] != signature:
+            raise ValueError(f"{path}: workload provenance mismatch")
+        _verify_workload(record, family, c)
         oldest = {}
         for arm, branch in record["branches"].items():
             scored = 0
@@ -171,11 +251,23 @@ def _compare(path, reconstructed, saved):
         )
 
 
-def audit(c, directory, summary, validation_passed):
+def audit(c, directory, summary, validation_passed=None):
     directory = Path(directory)
-    if (directory / "validation" / "result.json").is_file():
-        if audit_prerequisites(c, directory) != validation_passed:
-            raise ValueError("Caller and persisted prerequisite evidence disagree")
+    integrity = json.loads(
+        (directory / "validation/workload-integrity.json").read_text()
+    )
+    expected_counts = {
+        "C23": c.migration_roots,
+        "C4": c.overload_roots,
+        "C5": c.publisher_roots,
+    }
+    if not integrity["passed"] or integrity["checked_roots"] != expected_counts:
+        raise ValueError("Persisted workload controls are incomplete or invalid")
+    prerequisites = json.loads((directory / "validation/result.json").read_text())
+    checked = audit_prerequisites(c, directory)
+    if validation_passed is not None and checked != validation_passed:
+        raise ValueError("Caller and persisted prerequisite evidence disagree")
+    validation_passed = checked
     families = {
         "C23": (
             ["ref_hold", "ref_promote", "high_hold", "high_promote"],
@@ -188,7 +280,9 @@ def audit(c, directory, summary, validation_passed):
     risks = {}
     publisher_ages = []
     for family, (arm_names, n) in families.items():
-        group, ages = _read_evidence(directory, family, arm_names, n, c)
+        group, ages = _read_evidence(
+            directory, family, arm_names, n, c, prerequisites["signature"]
+        )
         outcomes[family] = group
         risks[family] = {}
         for arm, values in group.items():
@@ -270,9 +364,9 @@ def audit_prerequisites(c, directory):
         expected = 1000 / c.queue_service_rate * rho / (1 - rho)
         if cell["distribution"] == "M/D/1":
             expected *= 0.5
-        low, high = t.interval(
-            0.95, len(means) - 1, loc=np.mean(means), scale=sem(means)
-        )
+        half_width = t.ppf(0.975, len(means) - 1) * sem(means)
+        mean = np.mean(means)
+        low, high = mean - half_width, mean + half_width
         passed = expected * (1 - c.queue_tolerance) <= low and high <= expected * (
             1 + c.queue_tolerance
         )
@@ -322,7 +416,7 @@ def main():
     args = parser.parse_args()
     saved = json.loads((args.directory / "summary" / "verdict.json").read_text())
     c = read_config(args.config or args.directory / "pilot.toml")
-    result = audit(c, args.directory, saved, audit_prerequisites(c, args.directory))
+    result = audit(c, args.directory, saved)
     print(json.dumps(result, indent=2, allow_nan=False))
 
 
