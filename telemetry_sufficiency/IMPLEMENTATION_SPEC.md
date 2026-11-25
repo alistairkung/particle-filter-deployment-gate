@@ -1,6 +1,6 @@
 # AIMS5701 · Implementation and verification contract
 
-**Status — awaiting approval.** The [scientific protocol](SCIENTIFIC_SPEC.md) governs populations, fitting, uncertainty and verdicts. This contract defines the interfaces and tests needed to implement it. The proposed commands below are acceptance criteria for subsequent implementation.
+**Status — approved for implementation.** The [scientific protocol](SCIENTIFIC_SPEC.md) governs populations, fitting, uncertainty and verdicts. This contract defines the interfaces and tests needed to implement it. The proposed commands below are acceptance criteria for subsequent implementation.
 
 ## Structure and reuse
 
