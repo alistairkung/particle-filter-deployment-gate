@@ -97,7 +97,11 @@ def _particle_panel(panel, n, *, estimate):
             min_ess=[min(u.ess for u in p.steps) for p in posteriors],
             final_unique_ancestors=[p.steps[-1].unique_ancestors for p in posteriors],
             regime_extinction_steps=[
-                sum(0 in u.regime_counts for u in p.steps) for p in posteriors
+                sum(
+                    0 in u.regime_counts or 0.0 in u.regime_probabilities
+                    for u in p.steps
+                )
+                for p in posteriors
             ],
             seed_sd_by_regime=np.std(summary, axis=2, ddof=1).mean(axis=1).tolist(),
         ),

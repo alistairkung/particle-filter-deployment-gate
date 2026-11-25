@@ -196,3 +196,29 @@ def model_digest():
     files = _frozen_physical_files(repo) + [study / (name + ".py") for name in modules]
     files.extend(study.glob("configs/*.toml"))
     return _model_fingerprint(repo, files, ("numpy", "scipy", "simpy", "pyarrow"))
+
+
+def protocol_digest(stage):
+    """Identify the diagnostic driver, its scoring conventions and development data readers."""
+    repo = Path(__file__).resolve().parents[2]
+    drivers = {
+        "phase": "phase_challenge",
+        "teacher": "teacher_validation",
+        "sequential": "sequential_validation",
+    }
+    directory = Path(__file__).parent
+    files = [
+        directory / (drivers[stage] + ".py"),
+        directory / "development.py",
+        repo / "telemetry_sufficiency/parquet_evidence.py",
+        repo / "telemetry_sufficiency/custody.py",
+    ]
+    if stage == "sequential":
+        files.extend(
+            [
+                directory.parent / "evaluation.py",
+                repo / "telemetry_sufficiency/scoring.py",
+                DEVELOPMENT / "oof-predictions.parquet",
+            ]
+        )
+    return _model_fingerprint(repo, files, ("numpy", "scipy", "pyarrow"))

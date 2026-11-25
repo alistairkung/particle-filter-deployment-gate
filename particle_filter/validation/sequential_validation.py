@@ -20,6 +20,7 @@ from .development import (
     DEVELOPMENT,
     development_inventory,
     model_digest,
+    protocol_digest,
     development_seeds,
     fit_fold,
     replay_root,
@@ -131,9 +132,12 @@ def _delivery_checks(intervals, fit, seed):
     return result
 
 
-def _validate_fold(fold, output, producing_model):
+def _validate_fold(fold, output, producing_model, producing_protocol):
     protect_destination(output)
-    if model_digest() != producing_model:
+    if (
+        model_digest() != producing_model
+        or protocol_digest("sequential") != producing_protocol
+    ):
         raise ValueError("Sequential worker model differs from run start")
     roots = development_inventory()
     seeds = development_seeds(roots, SEED)
@@ -157,6 +161,7 @@ def _validate_fold(fold, output, producing_model):
             delivery[root.condition] = _delivery_checks(intervals, fit, seeds[root.key])
     report = dict(
         model_digest=producing_model,
+        protocol_digest=producing_protocol,
         training_digest=fit.training_digest,
         held_out=[r.key for r in held],
         diagnostics=fold_diagnostics(records, seed=SEED + fold),
@@ -206,19 +211,30 @@ def run(output, workers):
     protect_destination(output)
     output.mkdir(exist_ok=False, parents=True)
     producing_model = model_digest()
+    producing_protocol = protocol_digest("sequential")
     start = perf_counter()
     try:
         with ProcessPoolExecutor(workers) as pool:
             folds = list(
-                pool.map(_validate_fold, range(5), [output] * 5, [producing_model] * 5)
+                pool.map(
+                    _validate_fold,
+                    range(5),
+                    [output] * 5,
+                    [producing_model] * 5,
+                    [producing_protocol] * 5,
+                )
             )
-        if model_digest() != producing_model:
+        if (
+            model_digest() != producing_model
+            or protocol_digest("sequential") != producing_protocol
+        ):
             raise ValueError("Sequential model changed during validation")
         rows = [r for fold in folds for r in fold["roots"]]
         flags = repeatable_discrepancies([f["diagnostics"] for f in folds])
         # Each OOF root is scored against exactly its own held-out action outcomes.
         report = dict(
             model_digest=producing_model,
+            protocol_digest=producing_protocol,
             status="requires-review",
             particles=PARTICLES,
             forecast_pairs=PAIRS,
