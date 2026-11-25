@@ -7,11 +7,23 @@ def test_matched_hold_only_breaches_contribute_to_paired_gain():
     rows = []
     for condition in "ABC":
         for index, endpoints in enumerate(((1, 0), (0, 1))):
-            rows.append(dict(key=f"{condition}{index}", regime=condition, hold=endpoints[0],
-                             promote=endpoints[1], pending=0, work_s=0.25,
-                             predictions={name: {"hold": 0.5, "promote": 0.5}
-                                          for name in ("history", "prior", "current", "age", "ablated")}))
-            rows[-1]["predictions"]["full"] = dict(hold=endpoints[0], promote=endpoints[1])
+            rows.append(
+                dict(
+                    key=f"{condition}{index}",
+                    regime=condition,
+                    hold=endpoints[0],
+                    promote=endpoints[1],
+                    pending=0,
+                    work_s=0.25,
+                    predictions={
+                        name: {"hold": 0.5, "promote": 0.5}
+                        for name in ("history", "prior", "current", "age", "ablated")
+                    },
+                )
+            )
+            rows[-1]["predictions"]["full"] = dict(
+                hold=endpoints[0], promote=endpoints[1]
+            )
     report = score_roots(rows, backlog_median=0, seed=13)
     assert report["primary"]["gain"] == 1
     assert report["ablation"]["gain"] == 1
