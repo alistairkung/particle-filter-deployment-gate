@@ -1,0 +1,22 @@
+{
+  "commits": {
+    "feasibility_pilot": "bb20ebed72471f43443c873a11b2ac6e32fbbc00",
+    "telemetry_sufficiency": "624541bae2405fe47a59a193a55482775a7e0d0a"
+  },
+  "counts": {
+    "feasibility_pilot": {
+      "frozen_bytes": 106897262,
+      "frozen_files": 2433,
+      "study_bytes": 108180233,
+      "study_files": 2472
+    },
+    "telemetry_sufficiency": {
+      "frozen_bytes": 6862756,
+      "frozen_files": 28,
+      "study_bytes": 7073309,
+      "study_files": 54
+    }
+  },
+  "files_sha256": "0e7895dc226ee989f273f83811386051698dc0a2a33764e016fff92b22ee936d",
+  "schemas_sha256": "790fed6eae2ea451e53b4cee41b7b41fe34824816627a283d2a4474314170e47"
+}
