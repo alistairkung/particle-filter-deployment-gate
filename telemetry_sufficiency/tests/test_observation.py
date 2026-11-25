@@ -19,7 +19,10 @@ def test_completed_effects_across_first_two_boundaries():
     assert second.publication_throughput_per_s == 0.2
     assert second.completed_delay_median_s == 1 / SECOND
     third = collector.seal(end + 10 * SECOND)
-    assert third.publication_throughput_per_s == 0 and third.completed_delay_median_s is None
+    assert (
+        third.publication_throughput_per_s == 0
+        and third.completed_delay_median_s is None
+    )
 
 
 def test_history_changes_only_at_delivery_and_remains_immutable():
@@ -35,7 +38,10 @@ def test_history_changes_only_at_delivery_and_remains_immutable():
     feed.schedule(reads[3], available_at_ns=1)
     before = feed.as_of(-42 * SECOND - 1)
     assert before == ()
-    assert [r.interval_end_ns for r in feed.as_of(-42 * SECOND)] == [-55 * SECOND, -45 * SECOND]
+    assert [r.interval_end_ns for r in feed.as_of(-42 * SECOND)] == [
+        -55 * SECOND,
+        -45 * SECOND,
+    ]
     assert feed.as_of(0) == feed.as_of(-42 * SECOND)
     assert len(feed.as_of(1)) == 3
     assert before == feed.as_of(-42 * SECOND - 1)
@@ -47,9 +53,32 @@ def test_history_changes_only_at_delivery_and_remains_immutable():
         DeliveryLog().schedule(reads[0], available_at_ns=-56 * SECOND)
     rows = [asdict(r) for r in feed.as_of(1)]
     assert parse_history(rows, 0) == feed.as_of(0)
-    for patch in ({"condition": "reference"}, {"oldest_pending_age_s": float("nan")},
-                  {"available_at_ns": -56 * SECOND}, {"pending_count": True}):
+    for patch in (
+        {"condition": "reference"},
+        {"oldest_pending_age_s": float("nan")},
+        {"available_at_ns": -56 * SECOND},
+        {"pending_count": True},
+    ):
         with pytest.raises(ValueError):
             parse_history([dict(rows[0], **patch)])
     with pytest.raises(ValueError):
         parse_history([rows[0], rows[0]])
+
+
+def test_out_of_order_transit_and_lost_reading_have_same_view_before_delivery():
+    from telemetry_sufficiency.observation import DeliveryLog
+    import pytest
+
+    feed, collector = DeliveryLog(), Collector()
+    first, second, third = [collector.seal(end * SECOND) for end in (-55, -50, -45)]
+    feed.schedule(first, available_at_ns=-44 * SECOND)
+    feed.schedule(second, available_at_ns=-50 * SECOND)
+    assert feed.as_of(-49 * SECOND) == (second,)
+    assert [r.interval_end_ns for r in feed.as_of(-44 * SECOND)] == [
+        -55 * SECOND,
+        -50 * SECOND,
+    ]
+    with pytest.raises(ValueError, match="retroactively"):
+        feed.schedule(third, available_at_ns=-45 * SECOND)
+    feed.schedule(third, available_at_ns=None)
+    assert feed.as_of(-49 * SECOND) == (second,)

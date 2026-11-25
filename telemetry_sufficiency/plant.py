@@ -8,13 +8,16 @@ from pathlib import Path
 import numpy as np
 
 from experiments.config import MS, SECOND, read_config
+from experiments.observations import horizon_records, score_window
 from simulator.inputs import arrivals, rng
 from simulator.model import Model, QUERY, WRITE
 
 from .observation import Collector, DeliveryLog, INTERVAL, START
 
 NAMESPACE = "outbox-sufficiency-v1"
-CONFIG = read_config(Path(__file__).resolve().parents[1] / "feasibility_pilot/configs/pilot.toml")
+CONFIG = read_config(
+    Path(__file__).resolve().parents[1] / "feasibility_pilot/configs/pilot.toml"
+)
 CONDITIONS = ("reference", "contention", "publisher")
 ONSET = -30 * SECOND
 
@@ -25,7 +28,11 @@ def _digest(value):
 
 
 def _key(condition, partition, index):
-    if condition not in CONDITIONS or partition not in ("development", "protected", "fixture"):
+    if condition not in CONDITIONS or partition not in (
+        "development",
+        "protected",
+        "fixture",
+    ):
         raise ValueError("Unknown condition or partition")
     if type(index) is not int or not 0 <= index < 400:
         raise ValueError("Root index must be an integer in [0,399]")
@@ -37,8 +44,12 @@ def raw_tape(condition, partition, index, phase, *, surprise=False, config=CONFI
     key = _key(condition, partition, index)
     if phase not in ("prefix", "future"):
         raise ValueError("Unknown tape phase")
-    if surprise and (condition != "reference" or partition == "development" or phase != "future"):
-        raise ValueError("Surprise is a future of protected reference or reference fixtures")
+    if surprise and (
+        condition != "reference" or partition == "development" or phase != "future"
+    ):
+        raise ValueError(
+            "Surprise is a future of protected reference or reference fixtures"
+        )
 
     def stream(name):
         return rng(config.seed, NAMESPACE, *key, phase, name)
@@ -50,7 +61,10 @@ def raw_tape(condition, partition, index, phase, *, surprise=False, config=CONFI
     uniforms = stream("routing").random(len(at)).tolist()
     business = stream("business").exponential(size=len(at)).tolist()
     ids = range(-len(at), 0) if prefix else range(len(at))
-    rows = [(offset + t, "write", i, u, e) for t, i, u, e in zip(at, ids, uniforms, business)]
+    rows = [
+        (offset + t, "write", i, u, e)
+        for t, i, u, e in zip(at, ids, uniforms, business)
+    ]
     rates = [("reference", config.reference)]
     if condition == "contention" or surprise:
         rates.append(("extra", config.extra))
@@ -72,7 +86,7 @@ def admissions(tape, share, config=CONFIG):
     rows = []
     for tick, source, identity, draw, *extra in tape:
         if source == "write":
-            business, = extra
+            (business,) = extra
             java = draw < share
             ms = config.java_ms if java else config.ruby_ms
             work = round(business * ms * MS) + config.insert_ms * MS
@@ -102,13 +116,21 @@ class ObservedModel(Model):
 
 
 def _cut_truth(visits):
-    query_work = sum(end - start for kind, _, queued, start, end in visits
-                     if kind == QUERY and ONSET < queued <= 0)
+    query_work = sum(
+        end - start
+        for kind, _, queued, start, end in visits
+        if kind == QUERY and ONSET < queued <= 0
+    )
     active = sum(end for _, _, _, start, end in visits if start <= 0 < end)
     queued = sum(end - start for _, _, _, start, end in visits if start > 0)
-    return dict(demand=query_work / -ONSET, unfinished=(active + queued) / SECOND,
-                query_work_ns=query_work, duration_ns=-ONSET, queued_ns=queued,
-                active_residual_ns=active)
+    return dict(
+        demand=query_work / -ONSET,
+        unfinished=(active + queued) / SECOND,
+        query_work_ns=query_work,
+        duration_ns=-ONSET,
+        queued_ns=queued,
+        active_residual_ns=active,
+    )
 
 
 def start_prefix(condition, prefix, *, config=CONFIG, passive=True, deliveries=None):
@@ -128,18 +150,32 @@ def start_prefix(condition, prefix, *, config=CONFIG, passive=True, deliveries=N
         model.collector = None
     history = [asdict(r) for r in feed.as_of(0)]
     physical = model.physical_digest(with_routes=True)
-    state = dict(physical_digest=physical, ack_ms=model.c.ack_ms, ack_due=model.ack_due,
-                 eligible=[w.eligible for w in model.writes.values()],
-                 outstanding=[v for v in model.db.visits if v[-1] > 0])
-    cut = dict(history=history, truth=_cut_truth(model.db.visits),
-               physical_digest=physical, state_digest=_digest(state),
-               prefix_digest=_digest(prefix), history_digest=_digest(history))
+    state = dict(
+        physical_digest=physical,
+        ack_ms=model.c.ack_ms,
+        ack_due=model.ack_due,
+        reference_per_s=config.reference,
+        extra_per_s=config.extra if condition == "contention" else 0.0,
+        share=config.hold,
+        eligible=[w.eligible for w in model.writes.values()],
+        outstanding=[v for v in model.db.visits if v[-1] > 0],
+    )
+    cut = dict(
+        history=history,
+        truth=_cut_truth(model.db.visits),
+        physical_digest=physical,
+        state_digest=_digest(state),
+        prefix_digest=_digest(prefix),
+        history_digest=_digest(history),
+    )
     return model, cut
 
 
 def verify_admissions(model, prefix, future, share):
     """Bind each raw request and query to its actual external FIFO visit and write."""
-    expected = admissions(prefix, model.c.hold, model.c) + admissions(future, share, model.c)
+    expected = admissions(prefix, model.c.hold, model.c) + admissions(
+        future, share, model.c
+    )
     actual = []
     for kind, identity, tick, start, end in model.db.visits:
         if kind == WRITE:
@@ -162,18 +198,36 @@ def _branch_names(condition, partition):
     return ordinary
 
 
-def replay(condition, partition, index, branch, *, prefix=None, future=None, config=CONFIG,
-           passive=True, deliveries=None):
+def replay(
+    condition,
+    partition,
+    index,
+    branch,
+    *,
+    prefix=None,
+    future=None,
+    config=CONFIG,
+    passive=True,
+    deliveries=None,
+):
     """Replay one branch from a live prefix and freeze at the horizon, before drain."""
     _key(condition, partition, index)
     if branch not in _branch_names(condition, partition):
         raise ValueError("Unknown or unauthorised branch")
     if prefix is None:
         prefix = raw_tape(condition, partition, index, "prefix", config=config)
-    model, cut = start_prefix(condition, prefix, config=config, passive=passive, deliveries=deliveries)
+    model, cut = start_prefix(
+        condition, prefix, config=config, passive=passive, deliveries=deliveries
+    )
     if future is None:
-        future = raw_tape(condition, partition, index, "future",
-                          surprise=branch.startswith("surprise_"), config=config)
+        future = raw_tape(
+            condition,
+            partition,
+            index,
+            "future",
+            surprise=branch.startswith("surprise_"),
+            config=config,
+        )
     share = config.promote if branch.endswith("promote") else config.hold
     model.schedule(admissions(future, share, config))
     model.advance(config.horizon * SECOND)
@@ -182,16 +236,19 @@ def replay(condition, partition, index, branch, *, prefix=None, future=None, con
 
 
 def endpoint(model):
-    from experiments.observations import horizon_records, score_window
-
     c = model.c
     if model.env.now != c.horizon * SECOND:
         raise ValueError("Freeze outcomes exactly at the horizon")
-    cohort = [(i, window) for i, w in model.writes.items()
-              if (window := score_window(w.arrival, w.eligible, c)) is not None]
+    cohort = [
+        (i, window)
+        for i, w in model.writes.items()
+        if (window := score_window(w.arrival, w.eligible, c)) is not None
+    ]
     records = horizon_records(model, cohort)
-    return dict(windows=[dict(eligible=r["eligible"], misses=r["misses"]) for r in records],
-                breach=int(any(r["breach"] for r in records)))
+    return dict(
+        windows=[dict(eligible=r["eligible"], misses=r["misses"]) for r in records],
+        breach=int(any(r["breach"] for r in records)),
+    )
 
 
 def simulate_root(condition, partition, index, *, order=None, config=CONFIG):
@@ -203,7 +260,9 @@ def simulate_root(condition, partition, index, *, order=None, config=CONFIG):
     prefix = raw_tape(condition, partition, index, "prefix", config=config)
     futures = {False: raw_tape(condition, partition, index, "future", config=config)}
     if "surprise_hold" in names:
-        futures[True] = raw_tape(condition, partition, index, "future", surprise=True, config=config)
+        futures[True] = raw_tape(
+            condition, partition, index, "future", surprise=True, config=config
+        )
         if [r for r in futures[True] if r[1] != "extra"] != futures[False]:
             raise ValueError("Surprise changed ordinary future primitives")
     future_digests = {scenario: _digest(tape) for scenario, tape in futures.items()}
@@ -211,26 +270,54 @@ def simulate_root(condition, partition, index, *, order=None, config=CONFIG):
     branches = {}
     for name in order:
         surprise = name.startswith("surprise_")
-        model, _, _, cut = replay(condition, partition, index, name, prefix=prefix,
-                                  future=futures[surprise], config=config)
+        model, _, _, cut = replay(
+            condition,
+            partition,
+            index,
+            name,
+            prefix=prefix,
+            future=futures[surprise],
+            config=config,
+        )
         if shared_cut is None:
             shared_cut = cut
         elif cut != shared_cut:
-            raise ValueError("Prefix replay changed physical state or available history")
-        branches[name] = dict(**endpoint(model), cut_digest=cut["state_digest"],
-                              future_digest=future_digests[surprise],
-                              admissions_digest=model.admissions_digest)
+            raise ValueError(
+                "Prefix replay changed physical state or available history"
+            )
+        branches[name] = dict(
+            **endpoint(model),
+            cut_digest=cut["state_digest"],
+            future_digest=future_digests[surprise],
+            admissions_digest=model.admissions_digest,
+        )
     history = shared_cut.pop("history")
     truth = shared_cut.pop("truth")
-    return dict(condition=condition, partition=partition, index=index, history=history,
-                truth=truth, evidence=shared_cut, branches=branches)
+    return dict(
+        condition=condition,
+        partition=partition,
+        index=index,
+        history=history,
+        truth=truth,
+        evidence=shared_cut,
+        branches=branches,
+    )
 
 
 def example_trace(condition, partition, index, branch):
     """Private native evidence for a predesignated example root, including incomplete writes."""
     model, prefix, future, cut = replay(condition, partition, index, branch)
-    return dict(condition=condition, partition=partition, index=index, branch=branch,
-                prefix=prefix, future=future, visits=model.db.visits,
-                writes=[[i, asdict(w)] for i, w in model.writes.items()],
-                ack_due=model.ack_due, phase=model.phase, cut_digest=cut["state_digest"],
-                horizon_ns=model.env.now)
+    return dict(
+        condition=condition,
+        partition=partition,
+        index=index,
+        branch=branch,
+        prefix=prefix,
+        future=future,
+        visits=model.db.visits,
+        writes=[[i, asdict(w)] for i, w in model.writes.items()],
+        ack_due=model.ack_due,
+        phase=model.phase,
+        cut_digest=cut["state_digest"],
+        horizon_ns=model.env.now,
+    )
