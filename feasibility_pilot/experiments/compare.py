@@ -8,12 +8,14 @@ import json
 from pathlib import Path
 
 from experiments.config import read_config
+from experiments.parquet import read_records, iter_samples
+from experiments.runner import arms
 from experiments.storage import budgets, digest, load_json, save_json
 
 
 def inventory(root):
     paths = []
-    for name in ("branches", "samples", "windows", "validation", "summary"):
+    for name in ("evidence", "validation", "summary"):
         paths.extend(p for p in (root / name).rglob("*") if p.is_file())
     return {p.relative_to(root) for p in paths if p.name != "clean-reproduction.json"}
 
@@ -41,13 +43,10 @@ def expected_inventory(config):
         )
     )
     paths.update(
-        Path("samples/C1") / f"{root:04d}.npz" for root in range(config.placebo_roots)
+        Path("evidence") / family / f"{table}.parquet"
+        for family in ("C1", *budgets(config))
+        for table in ("branches", "windows", "samples")
     )
-    for family, count in budgets(config).items():
-        paths.add(Path("windows") / f"{family}.csv")
-        for root in range(count):
-            paths.add(Path("samples") / family / f"{root:04d}.npz")
-            paths.add(Path("branches") / family / f"{root:04d}.json")
     return paths
 
 
@@ -89,53 +88,87 @@ def _check_manifest(root, manifest, config_path):
         raise ValueError(f"{root}: invalid persisted prerequisite evidence")
     if not load_json(root / "summary/independent-audit.json")["verified"]:
         raise ValueError(f"{root}: unaudited conclusion")
+    for family, count in {"C1": config.placebo_roots, **expected}.items():
+        records = read_records(
+            root,
+            family,
+            {a.name for a in arms(config, family)},
+            count,
+            signature,
+            config.horizon // config.window,
+        )
+        for _ in iter_samples(root, family, records):
+            pass
     return required
 
 
-def compare(original, reproduced, config_path=None):
+def inventory_receipt(root, config_path=None):
+    """Bind a comparison to every file in the canonical pilot inventory."""
     config_path = (
         config_path or Path(__file__).resolve().parents[1] / "configs/pilot.toml"
     )
-    first = load_json(original / "manifest.json")
-    second = load_json(reproduced / "manifest.json")
+    manifest = load_json(root / "manifest.json")
+    expected = _check_manifest(root, manifest, config_path)
+    ledger = hashlib.sha256()
+    for path in sorted(expected):
+        ledger.update(f"{path} {digest(root / path)}\n".encode())
+    return {
+        "format": "parquet-v1",
+        "passed": True,
+        "signature": manifest["signature"],
+        "files_compared": len(expected),
+        "by_area": dict(Counter(path.parts[0] for path in expected)),
+        "inventory_sha256": ledger.hexdigest(),
+        "completed_roots": manifest["completed"],
+    }
+
+
+def compare(original, reproduced, config_path=None):
     if original.resolve() == reproduced.resolve():
         raise ValueError("Expected distinct execution directories")
-    expected = _check_manifest(original, first, config_path)
-    _check_manifest(reproduced, second, config_path)
+    baseline = inventory_receipt(original, config_path)
+    candidate = inventory_receipt(reproduced, config_path)
+    if baseline != candidate:
+        raise ValueError("Canonical evidence or retained validation/summary differs")
+    first = load_json(original / "manifest.json")
+    second = load_json(reproduced / "manifest.json")
     for key in (
         "signature",
         "input_digests",
-        "analysis_source_files",
         "seeds",
         "python",
-        "dependencies",
         "ordering",
         "time_representation",
     ):
         if key not in first or first[key] != second.get(key):
             raise ValueError(f"Run manifests differ on {key}")
-    ledger = hashlib.sha256()
-    for path in sorted(expected):
-        a = digest(original / path)
-        if a != digest(reproduced / path):
-            raise ValueError(f"Deterministic outputs differ: {path}")
-        ledger.update(f"{path} {a}\n".encode())
-    return {
-        "passed": True,
-        "signature": first["signature"],
-        "files_compared": len(expected),
-        "by_area": dict(Counter(path.parts[0] for path in expected)),
-        "inventory_sha256": ledger.hexdigest(),
-        "reproduction_elapsed_s": second["timings_s"],
-        "completed_roots": second["completed"],
-    }
+    # The original execution predates Parquet. After migration the analysis sources
+    # and storage runtime must also match between new executions.
+    if "pyarrow" in first["dependencies"] and (
+        first.get("analysis_source_files") != second.get("analysis_source_files")
+        or first["dependencies"]["pyarrow"] != second["dependencies"].get("pyarrow")
+    ):
+        raise ValueError("Run manifests differ on analysis sources or Parquet version")
+    # Storage-only changes introduce PyArrow. The pinned numerical runtime must match.
+    old, new = first["dependencies"].copy(), second["dependencies"].copy()
+    old.pop("pyarrow", None)
+    new.pop("pyarrow", None)
+    if old != new:
+        raise ValueError("Run manifests differ on numerical dependencies")
+    return {**baseline, "reproduction_elapsed_s": second["timings_s"]}
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("original", type=Path)
     parser.add_argument("reproduced", type=Path)
+    parser.add_argument(
+        "--receipt",
+        type=Path,
+        help="Optional path for a new Parquet comparison receipt",
+    )
     args = parser.parse_args()
     result = compare(args.original, args.reproduced)
-    save_json(args.original / "summary/clean-reproduction.json", result)
+    if args.receipt:
+        save_json(args.receipt, result)
     print("Verified", result["files_compared"], "deterministic outputs")

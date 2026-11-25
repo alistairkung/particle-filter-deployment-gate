@@ -6,7 +6,7 @@ import numpy as np
 
 from experiments.config import MS
 from experiments.runner import arms
-from experiments.storage import root_paths
+from experiments.parquet import iter_samples
 
 
 def verify_scientific_controls(c, out, roots):
@@ -14,10 +14,10 @@ def verify_scientific_controls(c, out, roots):
     for family, histories in roots.items():
         count = 0
         expected_arms = arms(c, family)
-        for root_id, branches in enumerate(histories):
-            _, path = root_paths(out, family, root_id)
-            with np.load(path) as samples:
-                assert_matched_history(c, family, expected_arms, branches, samples)
+        for branches, samples in zip(
+            histories, iter_samples(out, family, histories), strict=True
+        ):
+            assert_matched_history(c, family, expected_arms, branches, samples)
             count += 1
         checked[family] = count
     if c.load_fraction(0, c.overload) <= 1:

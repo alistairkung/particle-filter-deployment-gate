@@ -6,6 +6,7 @@ from pathlib import Path
 from .reproduce import reproduction_commands
 
 from . import CONDITIONS, PILOT
+from .archive import historical, legacy_digest
 from .custody import canonical, file_hash, read
 
 
@@ -27,7 +28,11 @@ def verify_report_evidence(run):
         comparisons_checked=77,
         lock=lock,
         scores=file_hash(run / "scores.json"),
-        replay_ledger=file_hash(run / "protected/replay-audit.jsonl.gz"),
+        replay_ledger=(
+            legacy_digest(run, "protected/replay-audit.jsonl.gz")
+            if historical(run)
+            else file_hash(run / "protected/replay-audit.parquet")
+        ),
     )
     if any(canonical(audit.get(k)) != canonical(v) for k, v in expected.items()):
         raise ValueError(
@@ -55,8 +60,13 @@ def verify_pilot_receipt(pilot):
     frozen = PILOT / "results/frozen"
     original_path = frozen / "summary/clean-reproduction.json"
     original = read(original_path)
+    reference = original
+    if pilot.get("format") == "parquet-v1":
+        from experiments.compare import inventory_receipt
+
+        reference = inventory_receipt(frozen)
     expected = {
-        k: original[k]
+        k: reference[k]
         for k in (
             "files_compared",
             "inventory_sha256",

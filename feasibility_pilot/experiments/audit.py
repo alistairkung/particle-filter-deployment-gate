@@ -13,6 +13,7 @@ from scipy.optimize import brentq
 from scipy.stats import binom, sem, t
 
 from experiments.config import read_config
+from experiments.parquet import read_records
 
 
 def _verify_migration_pairing(branches):
@@ -54,8 +55,7 @@ def _verify_overload_work(windows, c):
         previous = window
 
 
-def _verify_workload(record, family, c):
-    branches = record["branches"]
+def _verify_workload(branches, family, c):
     paired = (
         [branches["hold"], branches["promote"]] if family == "C4" else branches.values()
     )
@@ -95,18 +95,14 @@ def _verify_workload(record, family, c):
 def _read_evidence(directory, family, arm_names, n, c, signature):
     outcomes = {arm: [] for arm in arm_names}
     ages = []
-    for root_id in range(n):
-        path = directory / "branches" / family / f"{root_id:04d}.json"
-        record = json.loads(path.read_text())
-        if (record["family"], record["root"]) != (family, root_id):
-            raise ValueError(f"{path}: root identity mismatch")
-        if set(record["branches"]) != set(arm_names):
-            raise ValueError(f"{path}: invalid arm set")
-        if record["signature"] != signature:
-            raise ValueError(f"{path}: workload provenance mismatch")
-        _verify_workload(record, family, c)
+    records = read_records(
+        directory, family, arm_names, n, signature, c.horizon // c.window
+    )
+    for root_id, branches in enumerate(records):
+        path = f"{family}/{root_id}"
+        _verify_workload(branches, family, c)
         oldest = {}
-        for arm, branch in record["branches"].items():
+        for arm, branch in branches.items():
             scored = 0
             late_windows = 0
             windows = branch["windows"]
@@ -380,8 +376,29 @@ def audit_prerequisites(c, directory):
     placebos = validation["placebo"]
     if sorted(row["root_id"] for row in placebos) != list(range(c.placebo_roots)):
         raise ValueError("Incorrect placebo root list")
+    placebo_roots = read_records(
+        directory,
+        "C1",
+        {"zero", "hold", "promote", "all"},
+        c.placebo_roots,
+        validation["signature"],
+        c.horizon // c.window,
+    )
     for row in placebos:
-        arms = row["arms"]
+        arms = placebo_roots[row["root_id"]]
+        for arm, branch in arms.items():
+            if (
+                branch["sample_digest"] != row["sample_digest"]
+                or {
+                    k: v
+                    for k, v in branch.items()
+                    if k not in ("sample_digest", "sample_values_sha256")
+                }
+                != row["arms"][arm]
+            ):
+                raise ValueError(
+                    "Placebo validation and retained observations disagree"
+                )
         matched = set(arms) == {"zero", "hold", "promote", "all"} and all(
             branch["trace"] == arms["hold"]["trace"]
             and branch["windows"] == arms["hold"]["windows"]

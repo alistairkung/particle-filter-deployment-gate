@@ -93,11 +93,41 @@ def _sample_table(key, arrays):
     )
 
 
+def _encode_root(family, root_id, record, samples):
+    if (record["family"], record["root"]) != (family, root_id):
+        raise ValueError(f"Root identity mismatch for {family}/{root_id}")
+    branches = record["branches"]
+    expected = {
+        arm + suffix for arm in branches for suffix in ("_ns", "_java", "_censored")
+    }
+    if set(samples) != expected:
+        raise ValueError(f"Incorrect sample vector for {family}/{root_id}")
+    root_samples, branch_rows, window_rows = [], [], []
+    for arm, branch in sorted(branches.items()):
+        key = dict(family=family, root=root_id, arm=arm)
+        arrays = [samples[arm + suffix] for suffix in ("_ns", "_java", "_censored")]
+        if len(arrays[0]) != branch["scored"]:
+            raise ValueError(f"Scored cohort mismatch for {key}")
+        root_samples.append(_sample_table(key, arrays))
+        row = {k: v for k, v in branch.items() if k != "windows"}
+        branch_rows.append(
+            dict(
+                **key,
+                **row,
+                signature=record["signature"],
+                sample_digest=record["sample_digest"],
+                sample_values_sha256=_sample_hash(*arrays),
+            )
+        )
+        window_rows.extend({**key, **w} for w in branch["windows"])
+    return branch_rows, window_rows, pa.concat_tables(root_samples)
+
+
 def publish_family(out, family, records):
     """Install a complete partition atomically. Each input is a root record and its arrays."""
     parent = Path(out) / "evidence"
     parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(dir=parent, prefix=".stage-") as name:
+    with tempfile.TemporaryDirectory(dir=out, prefix=".parquet-stage-") as name:
         stage = Path(name) / family
         stage.mkdir()
         branch_rows, window_rows = [], []
@@ -113,38 +143,11 @@ def publish_family(out, family, records):
             write_page_checksum=True,
         ) as writer:
             for root_id, (record, samples) in enumerate(records):
-                if (record["family"], record["root"]) != (family, root_id):
-                    raise ValueError(f"Root identity mismatch for {family}/{root_id}")
-                branches = record["branches"]
-                expected = {
-                    arm + suffix
-                    for arm in branches
-                    for suffix in ("_ns", "_java", "_censored")
-                }
-                if set(samples) != expected:
-                    raise ValueError(f"Incorrect sample vector for {family}/{root_id}")
-                root_samples = []
-                for arm, branch in sorted(branches.items()):
-                    key = dict(family=family, root=root_id, arm=arm)
-                    arrays = [
-                        samples[arm + suffix]
-                        for suffix in ("_ns", "_java", "_censored")
-                    ]
-                    if len(arrays[0]) != branch["scored"]:
-                        raise ValueError(f"Scored cohort mismatch for {key}")
-                    root_samples.append(_sample_table(key, arrays))
-                    row = {k: v for k, v in branch.items() if k != "windows"}
-                    branch_rows.append(
-                        dict(
-                            **key,
-                            **row,
-                            signature=record["signature"],
-                            sample_digest=record["sample_digest"],
-                            sample_values_sha256=_sample_hash(*arrays),
-                        )
-                    )
-                    window_rows.extend({**key, **w} for w in branch["windows"])
-                table = pa.concat_tables(root_samples)
+                branches, windows, table = _encode_root(
+                    family, root_id, record, samples
+                )
+                branch_rows.extend(branches)
+                window_rows.extend(windows)
                 writer.write_table(table, row_group_size=max(len(table), 1))
         for filename, rows, schema in (
             ("branches", branch_rows, BRANCH),

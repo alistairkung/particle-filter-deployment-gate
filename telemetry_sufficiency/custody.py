@@ -1,6 +1,5 @@
 """Inventory and evidence custody. Transport keys never enter the predictors."""
 
-import gzip
 import os
 import tempfile
 import hashlib
@@ -8,6 +7,7 @@ import json
 from pathlib import Path
 
 from . import CONDITIONS
+
 PARTITIONS = ("development", "protected")
 FOLD_SEED = "outbox-sufficiency-v1/folds"
 BOOTSTRAP_SEED = 5701202601
@@ -71,24 +71,6 @@ def read(path):
     return json.loads(Path(path).read_bytes())
 
 
-def write_table(path, rows):
-    def write(stream):
-        with gzip.GzipFile(filename="", fileobj=stream, mode="wb", mtime=0) as output:
-            for row in rows:
-                output.write(canonical(row) + b"\n")
-
-    atomic(path, write)
-
-
-def read_table(path, expected):
-    with gzip.open(path, "rb") as stream:
-        for line, root in zip(stream, expected, strict=True):
-            record = json.loads(line)
-            if record["key"] != root["key"]:
-                raise ValueError(f"Wrong root in {path}: expected {root['key']}")
-            yield record
-
-
 def _check_record(row, record):
     if any(row[name] != record[name] for name in ("condition", "partition", "index")):
         raise ValueError(f"Root identity mismatch: {row['key']}")
@@ -97,25 +79,18 @@ def _check_record(row, record):
 
 
 def publish_partition(run, rows, raw):
-    part = run / rows[0]["partition"]
-    histories, private = [], []
-    for row, record in zip(rows, raw, strict=True):
-        _check_record(row, record)
-        histories.append(dict(key=row["key"], history=record["history"]))
-        private.append(
-            dict(key=row["key"], **{k: v for k, v in record.items() if k != "history"})
-        )
-    write_table(part / "observations.jsonl.gz", histories)
-    write_table(part / "evaluator.jsonl.gz", private)
+    from .parquet_evidence import write_partition
+
+    return write_partition(run / rows[0]["partition"], rows, raw)
 
 
 def records(run, rows):
+    from . import parquet_evidence as p
+
     part = run / rows[0]["partition"]
-    public = read_table(part / "observations.jsonl.gz", rows)
-    private = read_table(part / "evaluator.jsonl.gz", rows)
+    public = p.histories(part, rows)
+    private = p.private(part, rows)
     for row, observations, truth in zip(rows, public, private, strict=True):
-        if set(observations) != {"key", "history"}:
-            raise ValueError("Unexpected observation transport field")
         truth.pop("key")
         record = dict(truth, history=observations["history"])
         _check_record(row, record)

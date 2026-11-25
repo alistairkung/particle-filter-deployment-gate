@@ -8,6 +8,7 @@ import numpy as np
 
 from experiments.config import MS
 from experiments.observations import latency_quantiles
+from experiments.parquet import iter_samples, read_records
 
 
 def latency_distribution(elapsed_ns, censored):
@@ -132,19 +133,17 @@ def branch_diagnostics(c, family, arm, branches):
     return dict(branch=stats, workloads=db, windows=window_rows)
 
 
-def saved_latency_distributions(out_dir, family, arm, branches):
+def saved_latency_distributions(arm, branches, samples):
     """Check retained samples against their root records before pooling writes."""
     elapsed, routes, unresolved = [], [], []
-    for root, branch in enumerate(branches):
-        path = out_dir / "samples" / family / f"{root:04d}.npz"
-        with np.load(path, allow_pickle=False) as data:
-            ns = data[f"{arm}_ns"]
-            java = data[f"{arm}_java"].astype(bool)
-            censored = data[f"{arm}_censored"].astype(bool)
+    for root, (branch, data) in enumerate(zip(branches, samples, strict=True)):
+        ns, java, censored = (
+            data[arm + suffix] for suffix in ("_ns", "_java", "_censored")
+        )
         if not (ns.shape == java.shape == censored.shape == (branch["scored"],)):
-            raise ValueError(f"Scored cohort mismatch in {path}, arm {arm}")
+            raise ValueError(f"Scored cohort mismatch for {arm}/{root}")
         if censored.sum() != branch["censored"]:
-            raise ValueError(f"Censor count mismatch in {path}, arm {arm}")
+            raise ValueError(f"Censor count mismatch for {arm}/{root}")
         elapsed.append(ns)
         routes.append(java)
         unresolved.append(censored)
@@ -215,6 +214,7 @@ def _collect(c, out_dir, plots_dir, roots):
     arms, windows, db, latencies = [], [], [], []
     for family, root_set in roots.items():
         curves = {}
+        samples = list(iter_samples(out_dir, family, root_set))
         for arm in ARMS[family]:
             branches = [root[arm] for root in root_set]
             label = {"family": family, "arm": arm}
@@ -226,7 +226,7 @@ def _collect(c, out_dir, plots_dir, roots):
                 for name, row in diagnostics["workloads"].items()
             )
             table, curves[arm] = saved_latency_distributions(
-                out_dir, family, arm, branches
+                arm, branches, samples
             )
             latencies.extend(
                 {**label, "route": route, **row} for route, row in table.items()
@@ -615,7 +615,15 @@ def generate(
     plots_dir.mkdir(parents=True, exist_ok=True)
     summary_dir = summary_dir or out_dir / "summary"
     summary_dir.mkdir(parents=True, exist_ok=True)
-    all_roots = {"C1": [r["arms"] for r in validation["placebo"]], **roots}
+    placebos = read_records(
+        out_dir,
+        "C1",
+        {"zero", "hold", "promote", "all"},
+        len(validation["placebo"]),
+        validation["signature"],
+        c.horizon // c.window,
+    )
+    all_roots = {"C1": placebos, **roots}
     arms, windows, db, latencies = _collect(c, out_dir, plots_dir, all_roots)
     plot_risks(summary["risks"], summary["migration"], c.margin, plots_dir)
     for name, rows in (

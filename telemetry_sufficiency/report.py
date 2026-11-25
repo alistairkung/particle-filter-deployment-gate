@@ -12,14 +12,14 @@ def verified_verdict(run):
     return verify_report_evidence(run)
 
 
-def _plots(run, scores):
+def _plots(run, scores, output):
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from .custody import inventory, labelled_rows
 
-    directory = run / "plots"
+    directory = output / "plots"
     directory.mkdir(exist_ok=True)
     rows = list(
         labelled_rows(run, [r for r in inventory() if r["partition"] == "protected"])
@@ -76,21 +76,25 @@ def _plots(run, scores):
     return sorted(directory.glob("*.png"))
 
 
-def report(run, manifest, workers):
+def report(run, manifest, workers, *, output=None):
+    output = run if output is None else output
     verdict = verified_verdict(run)
     scores = read(run / "scores.json")
-    figures = _plots(run, scores)
-    path = run / "Experimental_Readiness_Report.md"
+    figures = _plots(run, scores, output)
+    path = output / "Experimental_Readiness_Report.md"
     content = render_report(scores, verdict)
     atomic(path, lambda stream: stream.write(content.encode()))
-    readiness = run / "readiness.json"
+    readiness = output / "readiness.json"
     save(readiness, dict(verdict=verdict, stage="report"))
     return [
         path,
         readiness,
         *figures,
-        run / "verification-review.json",
-        run / "pilot-reproduction.json",
+        *(
+            [run / "verification-review.json", run / "pilot-reproduction.json"]
+            if output == run
+            else []
+        ),
     ]
 
 
