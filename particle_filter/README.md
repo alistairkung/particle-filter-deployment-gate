@@ -48,6 +48,8 @@ mkdir -p /tmp/pf-validation
 "$PYTHON" -m particle_filter.validation.convergence --help
 ```
 
+The report binds the source model used at the start of each run and the hashes of its input files. Keep the report, teacher and sequential directories and the phase JSON together when moving the evidence bundle.
+
 Teacher-forced validation supplies the **true development boundary state** to the observation likelihood. Sequential validation tests the same likelihood with **inferred states**. Comparing their errors helps distinguish emission misspecification from particle approximation error. The phase challenge asks whether revealing publisher phase and the residual acknowledgement improves held-out physical predictions. These private development inputs end at the diagnostic boundary.
 
 The tests mirror the scientific components. Start with the public forecast and inference tests, then follow a failed assertion to the physical, emission, variant, budget or scoring fixture. Generated evidence and plots live separately from the implementation. [Tests](tests/) · [Development evidence](results/development/) · [Reviewed specification](SCIENTIFIC_SPEC.md) · [Methods and acceptance checks](METHODS_PLAN.md) · [Protected protocol](EVALUATION_PLAN.md)
