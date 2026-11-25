@@ -172,6 +172,30 @@ def report(run, manifest, workers):
         text.append(
             f"| {level} | {s['hold']:.4f} | {s['promote']:.4f} | {s['increment']:.4f} | {d} | {u} |"
         )
+    # Pooled gains can arise solely from identifying the assigned condition.
+    text += [
+        "",
+        "| Within-condition gain over its own mean | Demand | Signed increment |",
+        "|---|---:|---:|",
+    ]
+    for population in ("reference", "contention", "publisher"):
+        selected_gains = []
+        for target in ("demand", "increment"):
+            entry = next(
+                row
+                for row in comparisons
+                if (row["population"], row["target"], row["baseline"], row["candidate"])
+                == (population, target, "stratum_mean", claims[target]["candidate"])
+            )
+            selected_gains.append(estimate(entry))
+        text.append(f"| {population} | {selected_gains[0]} | {selected_gains[1]} |")
+    matrix = methods["history"]["confusion"]
+    text += [
+        "",
+        "These descriptive intervals compare each selected forecast to a constant that already knows the condition. Between-condition differences can therefore support a pooled claim even if prediction within each individual condition remains weak.",
+        "",
+        f"The temporal classifier identified {matrix[2][2]}/400 publisher-slowdown roots and {matrix[1][1]}/400 established-contention roots. It labelled {matrix[1][2]} contention roots as publisher slowdown and {matrix[2][1]} publisher roots as contention. Classification answers a separate question from estimating realised query work.",
+    ]
     p = comparison("promote", "prior", "current")
     text += [
         "",
@@ -197,6 +221,14 @@ def report(run, manifest, workers):
         "## 5. Is simulator v1 ready to freeze?",
         "",
     ]
+    temporal = comparison("increment", "current", "history")
+    if temporal["lower"] > 0:
+        temporal_interpretation = "The descriptive interval favours history for predicting the signed increment."
+    elif temporal["upper"] < 0:
+        temporal_interpretation = "The descriptive interval favours current measurements for predicting the signed increment."
+    else:
+        temporal_interpretation = "The incremental-risk comparison leaves the added value of history unresolved."
+    text.insert(-2, temporal_interpretation)
     if verdict == "READY":
         text.append(
             "Both protected information claims passed and the validity checks reconciled. The simulator is suitable for a subsequent synthetic forecasting experiment under this workload law. A later particle filter must earn any advantage over the complete current-value and simple temporal baselines on fresh protected histories."
