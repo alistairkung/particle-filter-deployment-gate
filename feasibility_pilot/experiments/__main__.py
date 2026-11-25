@@ -167,6 +167,7 @@ def write_window_tables(out, roots):
 
 def render(c, out, signature, args, manifest):
     from experiments.audit import audit
+    from experiments.integrity import verify_scientific_controls
     from experiments.metrics import summarize
     from experiments.report import generate
 
@@ -181,9 +182,12 @@ def render(c, out, signature, args, manifest):
         for f, n in budgets(c).items()
     }
     write_window_tables(out, roots)
-    summary = summarize(c, roots, validation["passed"])
+    integrity = verify_scientific_controls(c, out, roots)
+    save_json(out / "validation/workload-integrity.json", integrity)
+    controls_passed = validation["passed"] and integrity["passed"]
+    summary = summarize(c, roots, controls_passed)
     save_json(out / "summary/verdict.json", summary)
-    reconstruction = audit(c, out, summary, validation["passed"])
+    reconstruction = audit(c, out, summary, controls_passed)
     save_json(out / "summary/independent-audit.json", reconstruction)
     generate(c, out, args.plots, args.output, validation, roots, summary)
     manifest["analysis_source_files"] = source_files()
