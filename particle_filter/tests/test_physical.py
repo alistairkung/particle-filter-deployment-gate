@@ -140,3 +140,18 @@ def test_matched_forecast_is_reproducible_and_equal_route_work_matches_per_futur
     pair = matched_pair(Boundary(), "B", default_rng(44), config=equal_work)
     assert pair[0] == pair[1]
     assert pair == matched_pair(Boundary(), "B", default_rng(44), config=equal_work)
+
+
+def test_sparse_cell_fallback_accounts_for_only_admitted_work_and_retains_known_wait():
+    from numpy.random import default_rng
+    from particle_filter.physical import Boundary, Closure, Visit
+    from simulator.config import MS
+    from simulator.model import CLAIM, QUERY
+
+    closure = Closure([("A", Boundary(1, (Visit(CLAIM, MS),), "claim"))])
+    prior = Boundary(2, (), "ack", 30 * MS)
+    recovered, fallback = closure.reconstruct("A", 7, 2, default_rng(1), prior=prior)
+    assert fallback
+    assert recovered == Boundary(2, (Visit(QUERY, 7),), "ack", 30 * MS)
+    empty, fallback = closure.reconstruct("B", 0, 0, default_rng(1))
+    assert empty == Boundary() and not fallback
