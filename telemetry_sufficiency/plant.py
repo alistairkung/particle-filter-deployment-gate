@@ -12,13 +12,13 @@ from experiments.observations import horizon_records, score_window
 from simulator.inputs import arrivals, rng
 from simulator.model import Model, QUERY, WRITE
 
+from . import CONDITIONS
 from .observation import Collector, DeliveryLog, INTERVAL, START
 
 NAMESPACE = "outbox-sufficiency-v1"
 CONFIG = read_config(
     Path(__file__).resolve().parents[1] / "feasibility_pilot/configs/pilot.toml"
 )
-CONDITIONS = ("reference", "contention", "publisher")
 ONSET = -30 * SECOND
 
 

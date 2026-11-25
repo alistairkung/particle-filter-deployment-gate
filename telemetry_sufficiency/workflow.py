@@ -48,34 +48,124 @@ def relative_files(run, paths):
     return {str(p.relative_to(run)): c.file_hash(p) for p in paths}
 
 
+class EvidenceMismatch(ValueError):
+    def __init__(self, name, expected, observed):
+        self.evidence = dict(path=name, expected=expected, observed=observed)
+        super().__init__(
+            f"Evidence digest mismatch: {name} (expected {expected}, observed {observed})"
+        )
+
+
 def verify_files(run, mapping):
     for name, expected in mapping.items():
-        if c.file_hash(run / name) != expected:
-            raise ValueError(f"Evidence digest mismatch: {name}")
+        observed = c.file_hash(run / name) if (run / name).is_file() else None
+        if observed != expected:
+            raise EvidenceMismatch(name, expected, observed)
+
+
+REPORT = "Experimental_Readiness_Report.md"
+RECEIPTS = (
+    "manifest.json",
+    "readiness.json",
+    REPORT,
+    "validation.json",
+    "independent-audit.json",
+    "verification-review.json",
+    "pilot-reproduction.json",
+    "predictor-lock.json",
+)
+
+
+def receipt_snapshot(run):
+    return {
+        name: (run / name).read_bytes() for name in RECEIPTS if (run / name).is_file()
+    }
+
+
+def archive_snapshot(directory, snapshot):
+    for name, content in snapshot.items():
+        c.atomic(directory / name, lambda stream: stream.write(content))
 
 
 @contextmanager
-def attempt(run, stage):
+def attempt(run, stage, *, started=None):
     run.mkdir(parents=True, exist_ok=True)
     with (run / ".active").open("a") as guard:
         fcntl.flock(guard, fcntl.LOCK_EX | fcntl.LOCK_NB)
         path = run / "manifest.json"
-        manifest = c.read(path) if path.exists() else {"completed": {}, "attempts": []}
-        started = time.time_ns()
+        started = started or time.time_ns()
+        archive = run / "failures" / str(started)
+        incoming = receipt_snapshot(run)
+        manifest = {"completed": {}, "attempts": []}
         try:
+            if path.exists():
+                previous = c.read(path)
+                if not (
+                    isinstance(previous, dict)
+                    and isinstance(previous.get("completed"), dict)
+                    and all(
+                        k in STAGES and isinstance(v, dict)
+                        for k, v in previous["completed"].items()
+                    )
+                    and isinstance(previous.get("attempts", []), list)
+                ):
+                    raise ValueError("Invalid incoming study manifest")
+                manifest = previous
+            if stage == "reproduce":
+                # A fresh attempt supersedes the old receipt even if the subprocess fails.
+                if any(
+                    name in incoming for name in ("pilot-reproduction.json", REPORT)
+                ):
+                    archive_snapshot(archive, incoming)
+                    (run / "pilot-reproduction.json").unlink(missing_ok=True)
+                    readiness = run / "readiness.json"
+                    if (
+                        not readiness.exists()
+                        or c.read(readiness)["verdict"] != "NOT READY"
+                    ):
+                        (run / REPORT).unlink(missing_ok=True)
+                        readiness.unlink(missing_ok=True)
+                manifest["completed"].pop("report", None)
             yield manifest
         except BaseException as exc:
+            archive_snapshot(archive, incoming)
+            # A failing validation may have produced fresh diagnostic evidence.
+            current = {
+                name: content
+                for name, content in receipt_snapshot(run).items()
+                if content != incoming.get(name)
+            }
+            archive_snapshot(archive / "attempted", current)
             manifest["status"] = f"{stage} failed"
-            for invalid in STAGES[STAGES.index(stage) :]:
+            invalid_stage = "report" if stage == "reproduce" else stage
+            if isinstance(exc, EvidenceMismatch):
+                invalid_stage = next(
+                    (
+                        s
+                        for s, files in manifest["completed"].items()
+                        if exc.evidence["path"] in files
+                    ),
+                    stage,
+                )
+            for invalid in STAGES[STAGES.index(invalid_stage) :]:
                 manifest["completed"].pop(invalid, None)
             failure = dict(
-                stage=stage, error=f"{type(exc).__name__}: {exc}", at_ns=time.time_ns()
+                stage=stage,
+                verdict="NOT READY",
+                severity="material",
+                reason=f"{type(exc).__name__}: {exc}",
+                at_ns=time.time_ns(),
             )
-            c.save(run / "failures" / f"{started}.json", failure)
-            # A failed attempt cannot leave a published verdict at the normal entry point.
-            report = run / "Experimental_Readiness_Report.md"
-            if report.exists():
-                report.rename(run / "failures" / f"{started}-prior-report.md")
+            if isinstance(exc, EvidenceMismatch):
+                failure["mismatch"] = exc.evidence
+            c.save(archive / "failure.json", failure)
+            c.save(run / "readiness.json", failure)
+            summary = (
+                "# Experimental Readiness Report\n\n**Verdict — NOT READY.**\n\n"
+                f"The {stage} stage failed.\n\n{failure['reason']}\n\n"
+                f"[Failure evidence](failures/{started}/failure.json)\n"
+            )
+            c.atomic(run / REPORT, lambda stream: stream.write(summary.encode()))
             raise
         finally:
             manifest.setdefault("attempts", []).append(
@@ -329,7 +419,16 @@ def audit(run, manifest, workers):
         c.BOOTSTRAP_SEED,
     )
     path = run / "independent-audit.json"
-    c.save(path, dict(result, replay_ledger=c.file_hash(ledger), verified=True))
+    c.save(
+        path,
+        dict(
+            result,
+            replay_ledger=c.file_hash(ledger),
+            verified=True,
+            scores=c.file_hash(run / "scores.json"),
+            lock=c.file_hash(run / "predictor-lock.json"),
+        ),
+    )
     return [ledger, path]
 
 
@@ -360,6 +459,8 @@ def execute(stage, run, workers):
         if manifest.get("runtime") and manifest["runtime"] != environment():
             raise ValueError("Locked study runtime changed")
         for earlier in STAGES[: STAGES.index(stage)]:
+            if earlier not in manifest["completed"]:
+                raise ValueError(f"Required stage {earlier} has no completion receipt")
             verify_files(run, manifest["completed"][earlier])
         if stage in manifest["completed"]:
             verify_files(run, manifest["completed"][stage])

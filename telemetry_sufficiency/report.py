@@ -1,43 +1,15 @@
 """Generate the readiness decision only from reconciled and reviewed evidence."""
 
-from . import PILOT
-from .custody import file_hash, read
+from . import CONDITIONS
+from .custody import atomic, read, save
 
 LEVELS = ("prior", "age", "current", "history", "evaluator")
 
 
 def verified_verdict(run):
-    scores = read(run / "scores.json")
-    verdict = (
-        "READY"
-        if all(scores["claims"][name]["passes"] for name in ("demand", "increment"))
-        else "READY WITH LIMITATIONS"
-    )
-    audit = read(run / "independent-audit.json")
-    if (
-        not audit["verified"]
-        or audit["protected_roots"] != 1200
-        or audit["verdict"] != verdict
-    ):
-        raise ValueError("Independent scientific reconstruction disagrees")
-    pilot = read(run / "pilot-reproduction.json")
-    original = PILOT / "results/frozen/summary/clean-reproduction.json"
-    if not (
-        pilot["passed"]
-        and pilot["verdict"] == "GO"
-        and pilot["original_receipt"] == file_hash(original)
-        and pilot["inventory_sha256"] == read(original)["inventory_sha256"]
-    ):
-        raise ValueError("Missing or invalid frozen reproduction")
-    review = read(run / "verification-review.json")
-    if not (
-        review["passed"]
-        and review["audit"] == file_hash(run / "independent-audit.json")
-        and review["lock"] == file_hash(run / "predictor-lock.json")
-        and review["findings"]
-    ):
-        raise ValueError("Independent implementation review missing or stale")
-    return verdict
+    from .verification import verify_report_evidence
+
+    return verify_report_evidence(run)
 
 
 def _plots(run, scores):
@@ -52,7 +24,6 @@ def _plots(run, scores):
     rows = list(
         labelled_rows(run, [r for r in inventory() if r["partition"] == "protected"])
     )
-    conditions = ("reference", "contention", "publisher")
     fig, axes = plt.subplots(1, 2, figsize=(8, 3.3), layout="constrained")
     for ax, field, title in zip(
         axes,
@@ -60,8 +31,8 @@ def _plots(run, scores):
         ("Realised query demand (s/s)", "Unfinished DB work (s)"),
     ):
         ax.boxplot(
-            [[r[field] for r in rows if r["condition"] == cond] for cond in conditions],
-            tick_labels=conditions,
+            [[r[field] for r in rows if r["condition"] == cond] for cond in CONDITIONS],
+            tick_labels=CONDITIONS,
             showfliers=False,
         )
         ax.set_ylabel(title)
@@ -108,6 +79,22 @@ def _plots(run, scores):
 def report(run, manifest, workers):
     verdict = verified_verdict(run)
     scores = read(run / "scores.json")
+    figures = _plots(run, scores)
+    path = run / "Experimental_Readiness_Report.md"
+    content = render_report(scores, verdict)
+    atomic(path, lambda stream: stream.write(content.encode()))
+    readiness = run / "readiness.json"
+    save(readiness, dict(verdict=verdict, stage="report"))
+    return [
+        path,
+        readiness,
+        *figures,
+        run / "verification-review.json",
+        run / "pilot-reproduction.json",
+    ]
+
+
+def render_report(scores, verdict):
     methods = scores["populations"]["all"]["models"]
     claims = scores["claims"]
     comparisons = scores["comparisons"]
@@ -123,7 +110,6 @@ def report(run, manifest, workers):
     def estimate(r):
         return f"{r['gain']:+.5f} [{r['lower']:+.5f}, {r['upper']:+.5f}]"
 
-    figures = _plots(run, scores)
     text = [
         "# AIMS5701 · Experimental Readiness Report",
         "",
@@ -140,7 +126,7 @@ def report(run, manifest, workers):
         "| Protected population | Neither | Promote only | Hold only | Both | Hold risk | Promote risk | Increment |",
         "|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
-    for name in ("all", "reference", "contention", "publisher", "surprise"):
+    for name in ("all", *CONDITIONS, "surprise"):
         r = scores["populations"][name]
         cells = r["paired"]
         rates = r["rates"]
@@ -178,7 +164,7 @@ def report(run, manifest, workers):
         "| Within-condition gain over its own mean | Demand | Signed increment |",
         "|---|---:|---:|",
     ]
-    for population in ("reference", "contention", "publisher"):
+    for population in CONDITIONS:
         selected_gains = []
         for target in ("demand", "increment"):
             entry = next(
@@ -189,6 +175,36 @@ def report(run, manifest, workers):
             )
             selected_gains.append(estimate(entry))
         text.append(f"| {population} | {selected_gains[0]} | {selected_gains[1]} |")
+    for target, conditions in (("demand", CONDITIONS[:2]), ("increment", CONDITIONS)):
+        rows = [
+            r
+            for r in comparisons
+            if r["target"] == target
+            and r["baseline"] == "stratum_mean"
+            and r["candidate"] == claims[target]["candidate"]
+            and r["population"] in conditions
+        ]
+        positive = [
+            c
+            for c in conditions
+            if any(r["population"] == c and r["gain"] > 0 for r in rows)
+        ]
+        other = [c for c in conditions if c not in positive]
+        direction = []
+        if positive:
+            direction.append("positive in " + " and ".join(positive))
+        if other:
+            direction.append("zero or negative in " + " and ".join(other))
+        within_gain = sum(r["gain"] for r in rows) / len(rows)
+        between = claims[target]["gain"] - within_gain
+        text.extend(
+            [
+                "",
+                f"Within-condition {target} gains were {' and '.join(direction)}. "
+                f"Their mean was {within_gain:+.5f}. Between-condition differences contributed "
+                f"{between:+.5f} to the pooled gain of {claims[target]['gain']:+.5f}.",
+            ]
+        )
     matrix = methods["history"]["confusion"]
     text += [
         "",
@@ -196,10 +212,41 @@ def report(run, manifest, workers):
         "",
         f"The temporal classifier identified {matrix[2][2]}/400 publisher-slowdown roots and {matrix[1][1]}/400 established-contention roots. It labelled {matrix[1][2]} contention roots as publisher slowdown and {matrix[2][1]} publisher roots as contention. Classification answers a separate question from estimating realised query work.",
     ]
-    p = comparison("promote", "prior", "current")
+    for a, b in (
+        ("reference", "contention"),
+        ("reference", "publisher"),
+        ("contention", "publisher"),
+    ):
+        overlap = {
+            r["metric"]: r["overlap"]
+            for r in scores["overlap"]
+            if r["first"] == a and r["second"] == b
+        }
+        text.extend(
+            [
+                "",
+                f"{a}–{b} histogram overlap was {overlap['oldest_pending_age_s']:.1%} for oldest age "
+                f"and {overlap['pending_count']:.1%} for count (100% means identical bin frequencies).",
+            ]
+        )
+    gains = {
+        t: comparison(t, "prior", "current") for t in ("hold", "promote", "increment")
+    }
+    evaluator = methods["evaluator"]["scores"]
+    prior = methods["prior"]["scores"]
+    history = methods["history"]["scores"]
     text += [
         "",
-        f"Current outbox versus the action prior improved promotion Brier score by {estimate(p)} (paired descriptive 95% interval; positive favours current). The evaluator-only model had access to the assigned condition and two physical targets. Its scores quantify the discrimination extracted by that diagnostic and cannot establish an upper bound on predictability.",
+        f"Relative to the prior, current measurements changed hold and promote Brier scores by gains of "
+        f"{estimate(gains['hold'])} and {estimate(gains['promote'])}. The signed-increment MSE gain was "
+        f"{estimate(gains['increment'])}. Positive gains favour current measurements. Action-specific "
+        "forecasts can improve together while their difference gains little accuracy.",
+        "",
+        f"With private condition and physical targets, the evaluator reduced promotion Brier loss by "
+        f"{prior['promote'] - evaluator['promote']:+.5f} versus the prior and "
+        f"{history['promote'] - evaluator['promote']:+.5f} versus history. Its increment MSE gains were "
+        f"{prior['increment'] - evaluator['increment']:+.5f} and {history['increment'] - evaluator['increment']:+.5f}, "
+        "respectively. These differences measure the skill of the fitted evaluator with its extra inputs.",
         "",
         "![Physical targets by condition](plots/physical-targets.png)",
         "",
@@ -238,6 +285,28 @@ def report(run, manifest, workers):
         text.append(
             f"The validity checks reconciled. The following information claim remains unsupported: {unsupported}. A defensible follow-up asks whether a particle filter improves held-out action-specific and incremental forecasts over these locked baselines under the same bounded sensor law. The present evidence limits the expected gain."
         )
+    rates = [
+        scores["populations"][c]["rates"][a]
+        for c in CONDITIONS
+        for a in ("hold", "promote")
+    ]
+    changes = scores["surprise_changes"]
+
+    def shock(row):
+        return f"{row['change']:+.5f} [{row['lower']:+.5f}, {row['upper']:+.5f}]"
+
+    text += [
+        "",
+        f"Across ordinary condition/action pairs, breach rates ranged from {min(rates):.1%} "
+        f"to {max(rates):.1%}. Rates near the floor or ceiling leave little event variation. "
+        "One future per prefix and 400 roots per condition limit power to resolve small differences.",
+        "",
+        "Under the surprise increase, the frozen reference forecasts had promotion Brier "
+        f"loss change {shock(changes['scores']['current']['promote'])} for current measurements "
+        f"and increment MSE change {shock(changes['scores']['current']['increment'])}. "
+        f"The corresponding paired promotion breach-rate change was {shock(changes['rates']['promote'])}. "
+        "Positive score changes here mean greater loss under the shock.",
+    ]
     text += [
         "",
         "![Score gains and uncertainty](plots/information-claims.png)",
@@ -246,13 +315,4 @@ def report(run, manifest, workers):
         "",
         "The [machine-readable results](scores.json) contain per-condition comparisons, calibration counts, classifier confusions, overlap and surprise comparisons. The [independent audit](independent-audit.json), [pilot reproduction](pilot-reproduction.json), [predictor lock](predictor-lock.json) and [run manifest](manifest.json) identify the retained evidence.",
     ]
-    path = run / "Experimental_Readiness_Report.md"
-    from .custody import atomic
-
-    atomic(path, lambda stream: stream.write(("\n".join(text) + "\n").encode()))
-    return [
-        path,
-        *figures,
-        run / "verification-review.json",
-        run / "pilot-reproduction.json",
-    ]
+    return "\n".join(text) + "\n"

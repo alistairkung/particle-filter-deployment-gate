@@ -7,7 +7,7 @@ import hashlib
 import json
 from pathlib import Path
 
-CONDITIONS = ("reference", "contention", "publisher")
+from . import CONDITIONS
 PARTITIONS = ("development", "protected")
 FOLD_SEED = "outbox-sufficiency-v1/folds"
 BOOTSTRAP_SEED = 5701202601
