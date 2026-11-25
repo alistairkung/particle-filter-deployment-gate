@@ -42,6 +42,9 @@ class Lifecycle:
     def from_model(cls, model):
         rows = []
         for write in model.writes.values():
+            if not write.eligible:
+                assert write.claim is None and write.ack is None and write.mark is None
+                continue
             previous = write.arrival
             incomplete = False
             for stamp in (write.commit, write.claim, write.ack, write.mark):
@@ -110,12 +113,11 @@ class Visits:
         ).sum()
         return int(waiting.sum()), float(residual_ns / SECOND)
 
-    def deferred_publication(self, tick, c):
-        # Each admitted write owes two visits. Subtract work as each visit joins the DB queue.
+    def deferred_publication(self, tick, c, eligible_writes):
+        # Each eligible admission owes two visits. Subtract work as each visit joins the DB queue.
         offered = self.kinds[self.queued <= tick]
-        writes = np.count_nonzero(offered == WRITE)
-        claims_due = writes - np.count_nonzero(offered == CLAIM)
-        marks_due = writes - np.count_nonzero(offered == MARK)
+        claims_due = eligible_writes - np.count_nonzero(offered == CLAIM)
+        marks_due = eligible_writes - np.count_nonzero(offered == MARK)
         return (claims_due * c.claim_ms + marks_due * c.mark_ms) / 1000
 
     def window(self, left, right):
@@ -172,10 +174,12 @@ def horizon_records(model, cohort):
         queue, work = visits.queue(right)
         busy = sum(item["busy_s"] for item in db.values())
         offered = sum(item["offered_s"] for item in db.values())
-        relay_owed = db["write"]["visits"] * (c.claim_ms + c.mark_ms) / 1000
+        eligible_start = int(np.count_nonzero(events.arrivals <= left))
+        eligible_end = int(np.count_nonzero(events.arrivals <= right))
+        relay_owed = (eligible_end - eligible_start) * (c.claim_ms + c.mark_ms) / 1000
         cohort_work = db["write"]["offered_s"] + db["query"]["offered_s"] + relay_owed
-        initial_deferred = visits.deferred_publication(left, c)
-        deferred = visits.deferred_publication(right, c)
+        initial_deferred = visits.deferred_publication(left, c, eligible_start)
+        deferred = visits.deferred_publication(right, c, eligible_end)
         assert abs(initial_work + offered - busy - work) < 1e-8
         assert (
             abs(initial_work + initial_deferred + cohort_work - busy - work - deferred)

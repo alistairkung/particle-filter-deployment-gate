@@ -166,3 +166,21 @@ def test_load_equations_include_relay_and_displaced_ruby_work(config):
     assert config.load_fraction(.60, 5.5) == pytest.approx(.876)
     assert config.load_fraction(0, 12.5) == pytest.approx(1.06)
     assert np.isclose(config.load_fraction(.60, 3.5, True), config.load_fraction(.25, 3.5, True))
+
+
+def test_ineligible_admission_occupies_db_without_event_or_publication_debt(config):
+    model = Model(config, 0)
+    model.schedule([(1 * MS, 'write', 7, 60 * SECOND, False, False),
+                    (2 * MS, 'write', 8, MS, True)])
+    model.advance(120 * SECOND)
+    cohort = [(i, slot) for i, w in model.writes.items()
+              if (slot := score_window(w.arrival, w.eligible, config)) is not None]
+    windows = horizon_records(model, cohort)
+    assert cohort == [(8, 0)] and windows[0]['misses'] == 1
+    assert model.writes[7].commit == 60 * SECOND + MS
+    assert model.writes[7].claim is None
+    assert windows[0]['db']['write']['visits'] == 2
+    assert windows[0]['relay_owed_s'] == pytest.approx(.002)
+    assert windows[0]['deferred_s'] == pytest.approx(.002)
+    assert sum(row['commits'] for row in windows) == 1
+    assert sum(row['marks'] for row in windows) == 1

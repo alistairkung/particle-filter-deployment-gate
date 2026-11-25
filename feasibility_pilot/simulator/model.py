@@ -55,17 +55,18 @@ class Model:
     def schedule(self, tape):
         # Tape admissions at the same tick have priority over completion callbacks.
         # The stable source order is application, reference query, extra query.
-        for tick, kind, identity, work, java in tape:
+        for tick, *admission in tape:
             event = simpy.Event(self.env)
             event._ok = True
-            event._value = (kind, identity, work, java)
+            event._value = admission
             event.callbacks.append(self._admit)
             self.env.schedule(event, priority=0, delay=tick-self.env.now)
 
     def _admit(self, event):
-        kind, identity, work, java = event.value
+        kind, identity, work, java, *flags = event.value
+        eligible = flags[0] if flags else True
         if kind == "write":
-            self.writes[identity] = Write(self.env.now, java, work)
+            self.writes[identity] = Write(self.env.now, java, work, eligible=eligible)
             self.db.visit(WRITE, identity, work, lambda _: self._commit(identity))
         else:
             # Reference and extra streams each have their own IDs.
