@@ -10,16 +10,16 @@ from telemetry_sufficiency.tests.test_scoring import protected_rows
 
 @pytest.fixture(scope="module")
 def pilot_inventory():
-    from experiments.compare import inventory_receipt
+    from experiments.compare import frozen_reproduction_receipt
 
-    return inventory_receipt(PILOT / "results/frozen")
+    return frozen_reproduction_receipt()
 
 
 @pytest.fixture
 def evidence(tmp_path, pilot_inventory, monkeypatch):
     from experiments import compare
 
-    monkeypatch.setattr(compare, "inventory_receipt", lambda _: pilot_inventory)
+    monkeypatch.setattr(compare, "frozen_reproduction_receipt", lambda: pilot_inventory)
     # Synthetic paired outcomes with all four cells equally frequent in every stratum.
     rows = protected_rows()
     selected = {"demand": "current", "increment": "current"}
@@ -131,6 +131,8 @@ def evidence(tmp_path, pilot_inventory, monkeypatch):
         ("pilot-reproduction", "commands", []),
         ("pilot-reproduction", "files_compared", 0),
         ("pilot-reproduction", "frozen_manifest", "stale"),
+        ("pilot-reproduction", "reproduction_signature", "stale"),
+        ("pilot-reproduction", "reproduction_inventory_sha256", "stale"),
         ("verification-review", "findings", [False]),
         ("independent-audit", "comparisons_checked", 76),
         ("independent-audit", "scores", "stale"),

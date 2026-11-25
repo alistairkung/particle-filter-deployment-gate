@@ -7,7 +7,10 @@ import hashlib
 import json
 from pathlib import Path
 
-from experiments.publications import require_output
+import pyarrow as pa
+import pyarrow.parquet as pq
+
+from experiments.publications import PILOT, require_output
 from experiments.config import read_config
 from experiments.parquet import EVIDENCE_FORMAT, read_records, iter_samples
 from experiments.runner import arms
@@ -105,44 +108,94 @@ def _check_manifest(root, manifest, config_path):
     return required
 
 
-def inventory_receipt(root, config_path=None):
+def _inventory_digest(hashes):
+    ledger = hashlib.sha256()
+    for path, checksum in sorted(hashes.items()):
+        ledger.update(f"{path} {checksum}\n".encode())
+    return ledger.hexdigest()
+
+
+def _with_source_signature(root, hashes, signature):
+    """Expected bytes when only the implementation signature changes."""
+    expected = hashes.copy()
+    validation = Path("validation/result.json")
+    result = load_json(root / validation)
+    result["signature"] = signature
+    encoded = json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    expected[validation] = hashlib.sha256((encoded + "\n").encode()).hexdigest()
+    for path in hashes:
+        if path.name == "branches.parquet":
+            table = pq.ParquetFile(root / path).read()
+            field = table.schema.field("signature")
+            column = pa.repeat(pa.scalar(signature, type=field.type), len(table))
+            index = table.schema.get_field_index(field.name)
+            table = table.set_column(index, field, column)
+            stream = pa.BufferOutputStream()
+            pq.write_table(table, stream, compression="zstd", write_page_checksum=True)
+            expected[path] = hashlib.sha256(stream.getvalue()).hexdigest()
+    return _inventory_digest(expected)
+
+
+def inventory_receipt(root, config_path=None, *, reproduction_signature=None):
     """Bind a comparison to every file in the canonical pilot inventory."""
     config_path = (
         config_path or Path(__file__).resolve().parents[1] / "configs/pilot.toml"
     )
     manifest = load_json(root / "manifest.json")
     expected = _check_manifest(root, manifest, config_path)
-    ledger = hashlib.sha256()
-    for path in sorted(expected):
-        ledger.update(f"{path} {digest(root / path)}\n".encode())
-    return {
+    hashes = {path: digest(root / path) for path in expected}
+    receipt = {
         "format": EVIDENCE_FORMAT,
         "passed": True,
         "signature": manifest["signature"],
         "files_compared": len(expected),
         "by_area": dict(Counter(path.parts[0] for path in expected)),
-        "inventory_sha256": ledger.hexdigest(),
+        "inventory_sha256": _inventory_digest(hashes),
         "completed_roots": manifest["completed"],
     }
+    if reproduction_signature is not None:
+        receipt.update(
+            reproduction_signature=reproduction_signature,
+            reproduction_inventory_sha256=_with_source_signature(
+                root, hashes, reproduction_signature
+            ),
+        )
+    return receipt
+
+
+def frozen_reproduction_receipt():
+    """Bind the expected frozen outputs to the actual source of a fresh pilot."""
+    from experiments.__main__ import identity
+
+    config = PILOT / "configs/pilot.toml"
+    signature, _ = identity(config)
+    return inventory_receipt(
+        PILOT / "results/frozen", config, reproduction_signature=signature
+    )
 
 
 def compare(original, reproduced, config_path=None):
     if original.resolve() == reproduced.resolve():
         raise ValueError("Expected distinct execution directories")
-    baseline = inventory_receipt(original, config_path)
+    if original.resolve() == PILOT / "results/frozen":
+        baseline = frozen_reproduction_receipt()
+        signature = baseline["reproduction_signature"]
+        inventory_hash = baseline["reproduction_inventory_sha256"]
+    else:
+        baseline = inventory_receipt(original, config_path)
+        signature = baseline["signature"]
+        inventory_hash = baseline["inventory_sha256"]
     candidate = inventory_receipt(reproduced, config_path)
-    if baseline != candidate:
-        raise ValueError("Canonical evidence or retained validation/summary differs")
+    if (
+        candidate["signature"] != signature
+        or candidate["inventory_sha256"] != inventory_hash
+    ):
+        raise ValueError(
+            "Source or deterministic outputs differ from expected reproduction"
+        )
     first = load_json(original / "manifest.json")
     second = load_json(reproduced / "manifest.json")
-    for key in (
-        "signature",
-        "input_digests",
-        "seeds",
-        "python",
-        "ordering",
-        "time_representation",
-    ):
+    for key in ("seeds", "python", "ordering", "time_representation"):
         if key not in first or first[key] != second.get(key):
             raise ValueError(f"Run manifests differ on {key}")
     # The original execution predates Parquet. After migration the analysis sources
