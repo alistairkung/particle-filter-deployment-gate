@@ -200,6 +200,7 @@ def infer(
                 for tick, rows in contexts_by_end.items()
             }
             log_weights = np.full(particles, -math.log(particles))
+        surviving_ancestors = ancestors if resample else ancestors[weights > 0]
         steps.append(
             Update(
                 end,
@@ -207,7 +208,7 @@ def infer(
                 ess,
                 float(weights.max()),
                 resample,
-                len(np.unique(ancestors)),
+                len(np.unique(surviving_ancestors)),
                 tuple(np.bincount(regimes, minlength=3).tolist()),
                 fallbacks,
                 tuple(probabilities.tolist()),
