@@ -1,119 +1,224 @@
-"""Horizon records are frozen before the diagnostic drain."""
+"""Freeze horizon records before following outstanding writes for latency diagnostics."""
+
+from dataclasses import dataclass
+
 import numpy as np
+
 from experiments.config import MS, SECOND
-from simulator.model import WRITE, QUERY, CLAIM, MARK, KINDS
+from simulator.model import KINDS, WRITE, CLAIM, MARK
+
+MISSING = -(10**18)
+
 
 def score_window(arrival, eligible, c):
     deadline = arrival + c.deadline_ms * MS
     if not eligible or arrival <= 0 or deadline > c.horizon * SECOND:
         return None
-    return (deadline-1) // (c.window*SECOND)
+    return (deadline - 1) // (c.window * SECOND)
+
 
 def breaches(misses, denominator, fraction):
     return misses > fraction * denominator
 
-def latency_quantiles(latency, censored, probabilities=(.5,.95,.99)):
-    """Empirical order statistics. A censored observation can lie anywhere above its bound."""
+
+def latency_quantiles(latency, censored, probabilities=(0.5, 0.95, 0.99)):
+    """Return a lower bound where a right-censored observation leaves a rank unresolved."""
     if not len(latency):
         return [None] * len(probabilities)
-    low = np.quantile(latency, probabilities, method="inverted_cdf")
-    high = np.quantile(np.where(censored, np.inf, latency), probabilities, method="inverted_cdf")
-    return [float(a) if a == b else {"lower":float(a)} for a,b in zip(low,high)]
+    lower = np.quantile(latency, probabilities, method="inverted_cdf")
+    upper = np.quantile(
+        np.where(censored, np.inf, latency), probabilities, method="inverted_cdf"
+    )
+    return [float(a) if a == b else {"lower": float(a)} for a, b in zip(lower, upper)]
 
-def _lifecycle_array(model):
-    rows = []
-    for w in model.writes.values():
-        chain = [w.commit,w.claim,w.ack,w.mark]
-        previous = w.arrival
-        seen_missing = False
-        for stamp in chain:
-            if stamp is None:
-                seen_missing = True
-            else:
-                if seen_missing or stamp < previous:
-                    raise AssertionError("Invalid outbox lifecycle")
-                previous = stamp
-        rows.append([w.arrival, *(stamp if stamp is not None else -10**18 for stamp in chain)])
-    return np.array(rows, dtype=np.int64).reshape(-1,5).T
+
+@dataclass
+class Lifecycle:
+    arrivals: np.ndarray
+    commits: np.ndarray
+    marks: np.ndarray
+
+    @classmethod
+    def from_model(cls, model):
+        rows = []
+        for write in model.writes.values():
+            previous = write.arrival
+            incomplete = False
+            for stamp in (write.commit, write.claim, write.ack, write.mark):
+                if stamp is None:
+                    incomplete = True
+                elif incomplete or stamp < previous:
+                    raise AssertionError(
+                        "Invalid commit/claim/acknowledgement/mark order"
+                    )
+                else:
+                    previous = stamp
+            rows.append(
+                (
+                    write.arrival,
+                    MISSING if write.commit is None else write.commit,
+                    MISSING if write.mark is None else write.mark,
+                )
+            )
+        return cls(*np.asarray(rows, dtype=np.int64).reshape(-1, 3).T)
+
+    def pending(self, tick):
+        pending = (
+            (self.commits != MISSING)
+            & (self.commits <= tick)
+            & ((self.marks == MISSING) | (self.marks > tick))
+        )
+        count = int(pending.sum())
+        age = (tick - int(self.commits[pending].min())) / SECOND if count else 0.0
+        return count, age
+
+    def window(self, left, right):
+        commits = int(((self.commits > left) & (self.commits <= right)).sum())
+        processed = (self.marks > left) & (self.marks <= right)
+        marks = int(processed.sum())
+        initial, initial_age = self.pending(left)
+        final, final_age = self.pending(right)
+        assert final == initial + commits - marks
+        delays = (self.marks[processed] - self.commits[processed]) / SECOND
+        return dict(
+            commits=commits,
+            marks=marks,
+            pending=final,
+            pending_start=initial,
+            empty=final == 0,
+            age_s=final_age,
+            age_start_s=initial_age,
+            throughput=marks * SECOND / (right - left),
+            delay_p50_s=float(np.median(delays)) if marks else None,
+            delay_p95_s=float(np.quantile(delays, 0.95)) if marks else None,
+        )
+
+
+@dataclass
+class Visits:
+    kinds: np.ndarray
+    identities: np.ndarray
+    queued: np.ndarray
+    starts: np.ndarray
+    ends: np.ndarray
+
+    def queue(self, tick):
+        outstanding = (self.queued <= tick) & (self.ends > tick)
+        waiting = outstanding & (self.starts > tick)
+        residual_ns = (
+            self.ends[outstanding] - np.maximum(self.starts[outstanding], tick)
+        ).sum()
+        return int(waiting.sum()), float(residual_ns / SECOND)
+
+    def deferred_publication(self, tick, c):
+        # Each admitted write owes two visits. Subtract work as each visit joins the DB queue.
+        offered = self.kinds[self.queued <= tick]
+        writes = np.count_nonzero(offered == WRITE)
+        claims_due = writes - np.count_nonzero(offered == CLAIM)
+        marks_due = writes - np.count_nonzero(offered == MARK)
+        return (claims_due * c.claim_ms + marks_due * c.mark_ms) / 1000
+
+    def window(self, left, right):
+        data = {}
+        for kind, name in enumerate(KINDS):
+            selected = self.kinds == kind
+            began = selected & (self.starts > left) & (self.starts <= right)
+            admitted = selected & (self.queued > left) & (self.queued <= right)
+            completed = selected & (self.ends > left) & (self.ends <= right)
+            overlap = np.minimum(self.ends[selected], right) - np.maximum(
+                self.starts[selected], left
+            )
+            waits = (self.starts[began] - self.queued[began]) / MS
+            data[name] = dict(
+                visits=int(admitted.sum()),
+                completed=int(completed.sum()),
+                busy_s=float(np.maximum(0, overlap).sum() / SECOND),
+                offered_s=float(
+                    (self.ends[admitted] - self.starts[admitted]).sum() / SECOND
+                ),
+                waits=len(waits),
+                wait_sum_ms=float(waits.sum()),
+                wait_p95_ms=float(np.quantile(waits, 0.95)) if len(waits) else None,
+                still_waiting=int(
+                    (selected & (self.queued <= right) & (self.starts > right)).sum()
+                ),
+            )
+        return data
+
 
 def horizon_records(model, cohort):
     c = model.c
-    arrival, commit, claim, ack, mark = _lifecycle_array(model)
-    missing = -10**18
-    # Every offered write in the experiment is event-eligible.
-    assert all(w.eligible for w in model.writes.values())
-    visits = np.array(model.db.visits, dtype=np.int64).reshape(-1,5)
-    kinds, ids, enqueued, starts, ends = visits.T
-    assert np.all(starts >= enqueued) and np.all(ends[:-1] <= starts[1:])
-    denom = [0]*(c.horizon//c.window)
-    missed = denom.copy()
+    events = Lifecycle.from_model(model)
+    visits = Visits(*np.asarray(model.db.visits, dtype=np.int64).reshape(-1, 5).T)
+    assert np.all(visits.starts >= visits.queued) and np.all(
+        visits.ends[:-1] <= visits.starts[1:]
+    )
+    denominators = [0] * (c.horizon // c.window)
+    misses = denominators.copy()
     for identity, window in cohort:
-        w = model.writes[identity]
-        denom[window] += 1
-        missed[window] += w.commit is None or w.commit > w.arrival+c.deadline_ms*MS
-
-    def pending_at(t):
-        pending = (commit != missing) & (commit <= t) & ((mark == missing) | (mark > t))
-        count = int(pending.sum())
-        return count, (t-int(commit[pending].min()))/SECOND if count else 0.
-
-    def queue_at(t):
-        outstanding = (enqueued <= t) & (ends > t)
-        queued = outstanding & (starts > t)
-        remaining = np.maximum(ends[outstanding]-np.maximum(starts[outstanding], t),0).sum()
-        return int(queued.sum()), float(remaining/SECOND)
+        write = model.writes[identity]
+        denominators[window] += 1
+        misses[window] += (
+            write.commit is None or write.commit > write.arrival + c.deadline_ms * MS
+        )
 
     records = []
-    for i,(n,m) in enumerate(zip(denom,missed)):
-        left = i*c.window*SECOND
-        right = left + c.window*SECOND
-        commits = int(((commit > left) & (commit <= right)).sum())
-        processed = (mark > left) & (mark <= right)
-        marks = int(processed.sum())
-        old, initial_age = pending_at(left)
-        pending, age = pending_at(right)
-        assert pending == old + commits - marks
-        initial_queue, initial_work = queue_at(left)
-        queue, work = queue_at(right)
-        delays = (mark[processed]-commit[processed])/SECOND
-        data = {}
-        for k,name in enumerate(KINDS):
-            mask = kinds == k
-            began = mask & (starts > left) & (starts <= right)
-            admitted = mask & (enqueued > left) & (enqueued <= right)
-            completed = mask & (ends > left) & (ends <= right)
-            busy_ns = np.maximum(0, np.minimum(ends[mask],right)-np.maximum(starts[mask],left)).sum()
-            waits = (starts[began]-enqueued[began])/MS
-            data[name] = dict(visits=int(admitted.sum()), completed=int(completed.sum()),
-                              busy_s=float(busy_ns/SECOND), offered_s=float((ends[admitted]-starts[admitted]).sum()/SECOND),
-                              waits=len(waits), wait_sum_ms=float(waits.sum()),
-                              wait_p95_ms=float(np.quantile(waits,.95)) if len(waits) else None,
-                              still_waiting=int((mask & (enqueued <= right) & (starts > right)).sum()))
-        busy = sum(d["busy_s"] for d in data.values())
-        admitted_work = sum(d["offered_s"] for d in data.values())
-        assert abs(initial_work + admitted_work - busy - work) < 1e-8
-        assert busy <= c.window + 1e-10 and marks == data["mark"]["completed"]
-        relay_owed = data["write"]["visits"]*(c.claim_ms+c.mark_ms)/1000
-        records.append(dict(window=i+1, eligible=n, misses=m, breach=breaches(m,n,c.miss_fraction),
-                            commits=commits, marks=marks, pending=pending, pending_start=old,
-                            empty=pending==0, age_s=age, age_start_s=initial_age, throughput=marks/c.window,
-                            delay_p50_s=float(np.median(delays)) if marks else None,
-                            delay_p95_s=float(np.quantile(delays,.95)) if marks else None,
-                            queue_start=initial_queue,queue=queue, work_start_s=initial_work,work_s=work,
-                            realised_cohort_work_s=data["write"]["offered_s"]+data["query"]["offered_s"]+relay_owed,
-                            relay_owed_s=relay_owed, utilisation=busy/c.window, db=data))
+    for i, (denominator, late) in enumerate(zip(denominators, misses)):
+        left = i * c.window * SECOND
+        right = left + c.window * SECOND
+        outbox = events.window(left, right)
+        db = visits.window(left, right)
+        initial_queue, initial_work = visits.queue(left)
+        queue, work = visits.queue(right)
+        busy = sum(item["busy_s"] for item in db.values())
+        offered = sum(item["offered_s"] for item in db.values())
+        relay_owed = db["write"]["visits"] * (c.claim_ms + c.mark_ms) / 1000
+        cohort_work = db["write"]["offered_s"] + db["query"]["offered_s"] + relay_owed
+        initial_deferred = visits.deferred_publication(left, c)
+        deferred = visits.deferred_publication(right, c)
+        assert abs(initial_work + offered - busy - work) < 1e-8
+        assert (
+            abs(initial_work + initial_deferred + cohort_work - busy - work - deferred)
+            < 1e-8
+        )
+        assert busy <= c.window + 1e-10 and outbox["marks"] == db["mark"]["completed"]
+        records.append(
+            dict(
+                window=i + 1,
+                eligible=denominator,
+                misses=late,
+                breach=breaches(late, denominator, c.miss_fraction),
+                **outbox,
+                queue_start=initial_queue,
+                queue=queue,
+                work_start_s=initial_work,
+                work_s=work,
+                realised_cohort_work_s=cohort_work,
+                relay_owed_s=relay_owed,
+                deferred_start_s=initial_deferred,
+                deferred_s=deferred,
+                utilisation=busy / c.window,
+                db=db,
+            )
+        )
     assert records[-1]["pending"] == len(model.pending)
     return records
 
+
 def finish_latencies(model, cohort):
     c = model.c
-    cap = (c.horizon+c.drain)*SECOND
-    unfinished = {i for i,_ in cohort if model.writes[i].commit is None}
+    cap = (c.horizon + c.drain) * SECOND
+    unfinished = {i for i, _ in cohort if model.writes[i].commit is None}
     if unfinished:
-        latest = max(end for k,i,_,_,end in model.db.visits if k == WRITE and i in unfinished)
-        model.advance(min(cap,latest))
-    rows = [model.writes[i] for i,_ in cohort]
-    elapsed = np.array([(w.commit if w.commit is not None else cap)-w.arrival for w in rows],dtype=np.int64)
-    java = np.array([w.java for w in rows],dtype=bool)
-    censored = np.array([w.commit is None for w in rows],dtype=bool)
-    return elapsed,java,censored
+        latest = max(
+            end for k, i, _, _, end in model.db.visits if k == WRITE and i in unfinished
+        )
+        model.advance(min(cap, latest))
+    rows = [model.writes[i] for i, _ in cohort]
+    elapsed = np.array(
+        [(w.commit if w.commit is not None else cap) - w.arrival for w in rows],
+        dtype=np.int64,
+    )
+    java = np.array([w.java for w in rows], dtype=bool)
+    censored = np.array([w.commit is None for w in rows], dtype=bool)
+    return elapsed, java, censored
