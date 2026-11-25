@@ -1,0 +1,7 @@
+# Start each synthetic observation history with an empty DB and publisher
+
+At the beginning of the 60-second prefix, set every particle's unfinished DB work to zero and start its hypothetical publisher with no pending records, outstanding claim or mark visits, or acknowledgement in flight. Draw the regime from the uniform A/B/C prior for every half-life configuration. Construct these values from declared constants shared with all baselines. The actual plant and assigned regime remain private. [Initial regime prior](0008-initial-regime-prior.md)
+
+The initial history has no delivered reading. The first interval ends five seconds after startup. Give the empty-start assumption no observation likelihood weight. When the first reading is missing or delayed, propagate each particle's workload and publisher progress through the next interval from its own trajectory. Subsequent updates and the deployment cut inherit the estimated state. The evaluator supplies no state refresh.
+
+These conclusions apply to observation from a known empty physical start. Attaching monitoring to a running service introduces uncertainty about inherited work and publisher obligations. A joint warm-start prior is an optional robustness study outside the primary experiment. The [scientific specification](../../particle_filter/SCIENTIFIC_SPEC.md#physical-initialisation) defines the deterministic verification cases.

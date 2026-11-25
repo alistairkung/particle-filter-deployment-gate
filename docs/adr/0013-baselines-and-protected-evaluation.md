@@ -1,0 +1,7 @@
+# Compare the complete PF forecast with temporal history and ablate its decision-time work estimate
+
+**Revised Decision 11, approved.** The primary comparison is the full PF-based forecasting pipeline versus the locked temporal-history predictor on signed incremental-risk MSE. Retain the action prior, latest oldest pending age and complete current snapshot as contextual predictors. Keep the previously declared predictor specifications and development-only fits. A gain supports the complete pipeline under the synthetic workload. This design does not isolate the numerical particle algorithm.
+
+For the main explanatory comparison, use the full PF regime probabilities and replace its history-specific conditional work distribution at the cut with the development distribution of cut work given regime. Hold the permitted publisher context, reconstruction rule, workload, routing, FIFO forecasts, endpoint and forecast-pair budget fixed. This measures the contribution of the history-specific work estimate at the decision cut. Both variants still infer the regime from the same outbox evidence.
+
+Evaluate on identical fresh protected roots balanced across A/B/C. Keep matched actions and every future in its root family. Report action-specific Brier scores and calibration, pooled and per-condition performance, state diagnostics, paired whole-root intervals and runtime. Fix the balanced root count from development runtime and available resources before protected access. [Decision 12 planning](../../particle_filter/EVALUATION_PLAN.md)
