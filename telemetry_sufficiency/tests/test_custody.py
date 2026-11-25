@@ -59,4 +59,74 @@ def test_failed_stage_invalidates_downstream_and_preserves_failure(tmp_path):
     manifest = custody.read(tmp_path / "manifest.json")
     assert set(manifest["completed"]) == {"validate"}
     assert manifest["status"] == "lock failed"
-    assert list((tmp_path / "failures").glob("*.json"))
+    assert list((tmp_path / "failures").glob("*/failure.json"))
+
+
+def test_invalidated_evidence_preserves_incoming_manifest_and_observed_digest(tmp_path):
+    from telemetry_sufficiency.workflow import execute
+
+    source = tmp_path / "inventory.json"
+    custody.save(source, ["original"])
+    frozen = custody.file_hash(source)
+    incoming = {"completed": {"validate": {"inventory.json": frozen}, "report": {}}}
+    custody.save(tmp_path / "manifest.json", incoming)
+    (tmp_path / "Experimental_Readiness_Report.md").write_text("Prior decision")
+    custody.save(source, ["changed"])
+    with pytest.raises(ValueError, match="digest mismatch"):
+        execute("validate", tmp_path, 1)
+
+    (failure,) = (tmp_path / "failures").glob("*/failure.json")
+    assert custody.read(failure)["mismatch"] == {
+        "path": "inventory.json",
+        "expected": frozen,
+        "observed": custody.file_hash(source),
+    }
+    assert custody.read(failure.parent / "manifest.json") == incoming
+    assert (
+        failure.parent / "Experimental_Readiness_Report.md"
+    ).read_text() == "Prior decision"
+    assert custody.read(tmp_path / "readiness.json")["verdict"] == "NOT READY"
+    assert "NOT READY" in (tmp_path / "Experimental_Readiness_Report.md").read_text()
+
+
+def test_pilot_reproduction_guard_and_failed_retry(tmp_path, monkeypatch):
+    import fcntl
+    import subprocess
+    from telemetry_sufficiency import PILOT
+    from telemetry_sufficiency.reproduce import reproduce
+
+    def fail(*args, **kwargs):
+        raise RuntimeError("fixture pilot validation failed")
+
+    monkeypatch.setattr(subprocess, "run", fail)
+    with pytest.raises(ValueError, match="frozen pilot"):
+        reproduce(PILOT / "pilot-reproduction.json")
+
+    receipt = tmp_path / "pilot-reproduction.json"
+    custody.save(receipt, {"passed": True})
+    incoming = {"completed": {"audit": {}, "report": {}}}
+    custody.save(tmp_path / "manifest.json", incoming)
+    (tmp_path / "Experimental_Readiness_Report.md").write_text("prior report")
+    with (tmp_path / ".active").open("a") as guard:
+        fcntl.flock(guard, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with pytest.raises(BlockingIOError):
+            reproduce(receipt)
+    with pytest.raises(RuntimeError, match="fixture pilot validation"):
+        reproduce(receipt)
+    assert not receipt.exists()
+    assert custody.read(tmp_path / "manifest.json")["completed"] == {"audit": {}}
+    (archive,) = (tmp_path / "failures").iterdir()
+    assert custody.read(archive / receipt.name) == {"passed": True}
+    assert (archive / "Experimental_Readiness_Report.md").read_text() == "prior report"
+    assert custody.read(tmp_path / "readiness.json")["stage"] == "reproduce"
+
+
+def test_corrupt_manifest_publishes_failure_and_preserves_original_bytes(tmp_path):
+    from telemetry_sufficiency.workflow import execute
+
+    (tmp_path / "manifest.json").write_text('{"completed":null}')
+    with pytest.raises(ValueError, match="manifest"):
+        execute("report", tmp_path, 1)
+    (archive,) = (tmp_path / "failures").iterdir()
+    assert (archive / "manifest.json").read_text() == '{"completed":null}'
+    assert custody.read(tmp_path / "readiness.json")["verdict"] == "NOT READY"

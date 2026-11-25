@@ -7,9 +7,9 @@ import numpy as np
 from scipy.optimize import minimize
 from scipy.special import expit, logsumexp, softmax
 
+from . import CONDITIONS
 from .observation import parse_history
 
-CONDITIONS = ("reference", "contention", "publisher")
 LEVELS = ("prior", "age", "current", "history")
 METRICS = (
     "pending_count", "oldest_pending_age_s",
