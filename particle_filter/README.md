@@ -2,6 +2,8 @@
 
 At the 60-second decision cut, this study estimates the chance of a write-SLO breach if Java traffic stays at 25% or increases to 60%. The forecast reports both probabilities and their signed difference, promote minus hold. Implementation and development validation are authorised. Generating or accessing the 300 protected roots requires successful development validation, locked methods, verified runtime and separate owner approval.
 
+**Current development result.** The fitted likelihood missed the slow-publisher backlog tail on held-out roots. The development comparison with temporal history was inconclusive. Method lock is withheld. [Results, uncertainty intervals and a worked forecast](results/development/README.md)
+
 ## Follow one observation
 
 1. **Read the outbox.** A five-second reading carries a measurement interval and a delivery time. The controller can use it from delivery onwards. An empty outbox has oldest age zero. When no publication marks completed, median completed delay is undefined. [Frozen public reading contract](../simulator/observations.py)
