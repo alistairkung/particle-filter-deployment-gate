@@ -7,7 +7,7 @@ import numpy as np
 from scipy.special import ndtri
 
 from .methods import ACTIONS, CONDITIONS, LEVELS, PHYSICAL
-from .observation import parse_history
+from simulator.observations import parse_history
 
 MODELS = (*LEVELS, "evaluator")
 RISK = (*ACTIONS, "increment")

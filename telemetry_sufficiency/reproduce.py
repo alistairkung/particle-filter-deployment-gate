@@ -62,7 +62,6 @@ def _compare_fresh_pilot(receipt, output):
             "bb20ebe",
             "--",
             "configs",
-            "simulator",
             "requirements.lock",
         ],
         cwd=PILOT,

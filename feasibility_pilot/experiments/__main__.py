@@ -31,6 +31,9 @@ from experiments.storage import (
 BASE = Path(__file__).resolve().parents[1]
 FROZEN = BASE / "results/frozen"
 FROZEN_REPORT = BASE / "FEASIBILITY_REPORT.md"
+FROZEN_MANIFEST_SHA256 = (
+    "55276b2edb1e8e0482f01b6935840e1b354fda74f3b2361fd46689d58d3e6d81"
+)
 
 
 def identity(config_path):
@@ -42,9 +45,13 @@ def identity(config_path):
         "experiments/observations.py",
         "experiments/runner.py",
         "experiments/validation.py",
+        "experiments/workload.py",
     ]
     physics += sorted(
         str(p.relative_to(BASE)) for p in (BASE / "simulator").glob("*.py")
+    )
+    physics += sorted(
+        "../simulator/" + p.name for p in (BASE.parent / "simulator").glob("*.py")
     )
     files = {f: digest(BASE / f) for f in physics}
     files["config"] = digest(config_path)
@@ -58,7 +65,8 @@ def source_files():
         for directory in ("experiments", "simulator", "tests")
         for p in (BASE / directory).glob("*.py")
     ]
-    return {str(p.relative_to(BASE)): digest(p) for p in sorted(sources)}
+    sources += sorted((BASE.parent / "simulator").glob("*.py"))
+    return {os.path.relpath(p, BASE): digest(p) for p in sorted(sources)}
 
 
 def git(*args):
@@ -356,11 +364,13 @@ def main():
                 "Use a separate output directory to reproduce the archived experiment"
             )
         manifest = load_json(out / "manifest.json")
-        signature, _ = identity(config_path)
-        if signature != manifest["signature"]:
-            raise ValueError(
-                "Scientific source or configuration differs from the archived pilot"
-            )
+        # The immutable manifest binds the historical signature used in every branch.
+        if (
+            digest(out / "manifest.json") != FROZEN_MANIFEST_SHA256
+            or digest(config_path) != manifest["input_digests"]["config"]
+        ):
+            raise ValueError("Invalid archived pilot manifest or configuration")
+        signature = manifest["signature"]
         render(read_config(config_path), out, signature, args, manifest, archived=True)
         return
     require_output(out)

@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from experiments.config import SECOND
 from experiments.observations import finish_latencies, horizon_records, score_window
-from simulator.inputs import inputs
+from experiments.workload import inputs
 from simulator.model import Model
 
 

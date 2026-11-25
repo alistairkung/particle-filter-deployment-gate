@@ -1,0 +1,202 @@
+{
+  "baseline_main": "28be222cf34414b200b23b5faf16f525d14cde88",
+  "candidate": "simulator-v1.0.0",
+  "environment": {
+    "numpy": "2.5.5",
+    "platform": "macOS arm64",
+    "pyarrow": "26.0.1",
+    "python": "3.14.0",
+    "scipy": "1.18.1",
+    "simpy": "4.1.2"
+  },
+  "implementation_commit": "141b0f2fb30dfcf60697885a3bc0b32ddb6d7971",
+  "independent_migration_verifier": {
+    "arguments": [
+      "--require-cleanup",
+      "--workers",
+      "5"
+    ],
+    "comparison": "Stored values, types and order exact. Independently derived statistics use absolute and relative tolerance 1e-10.",
+    "comparisons_checked": 77,
+    "predictions_checked": 64800,
+    "recomputed_receipts_sha256": {
+      "evidence_migration/receipts/migration-verification.json": "4a9a24c6bdbcb07968b08bd42eac5b1fe687f4da5d18763648e95919d091a566",
+      "evidence_migration/receipts/pilot-equivalence.json": "3c1f718cdcf95b9520101c258d5c4a028072ddae865398bb9a6000e1a6372ab9",
+      "evidence_migration/receipts/telemetry-equivalence.json": "c2144022c16455a017a3456466173f75b568327da98b08a379a16df6724aa72f"
+    },
+    "replayed_admissions": 25491716,
+    "replayed_protected_branches": 3200,
+    "retained_byte_identical_artifacts": 47
+  },
+  "pilot": {
+    "audit_sha256": "c5ec76b0c6d71f5e661481d1eafe84c5c5fc722f8e03415ac475f1e82121e309",
+    "byte_identical_files": 18,
+    "c0_analytical_cells": 4,
+    "c0_seed_means": 128,
+    "c1_roots": 16,
+    "config_sha256": "0e231a9284978e8d37350c8cfb25b7e6c10778f942c783dbe2c20816e640d450",
+    "files_compared": 23,
+    "files_with_source_signature_changes_only": [
+      "evidence/C1/branches.parquet",
+      "evidence/C23/branches.parquet",
+      "evidence/C4/branches.parquet",
+      "evidence/C5/branches.parquet",
+      "validation/result.json"
+    ],
+    "frozen_inventory_sha256": "504e442115bb17dd254143663556e31cfb98d65785633d3d585764a6e9c85520",
+    "frozen_manifest_sha256": "55276b2edb1e8e0482f01b6935840e1b354fda74f3b2361fd46689d58d3e6d81",
+    "historical_signature": "cd98daa8867fdc350f9ad4d39f769594c1af2a15aa30e11b8023e33b092b36e7",
+    "report": {
+      "byte_identical_plots": {
+        "breach-risks.png": "b8cf4cc55c5771b60d8479dc17c94fcc1cc0a1e9a5f0fc9b6796088473cf599e",
+        "latency-C1.png": "82d0e82341202d8d78ebef56f61b45aca42386945c01f9210311bfeccf75ea69",
+        "latency-C23.png": "45daefdcca7f1622c9becad5b6b7cafaf2a61cb14e661b1343a73ab1efb447c6",
+        "latency-C4.png": "b8773d20dcd2676108bccb84f7b168f9475315e1edf55ee8baef7f3bbcfcea15",
+        "latency-C5.png": "398b254b0d07e36f3007730523737e0d90e0e6cd15031fc496e529a554344b62",
+        "trace-C1.png": "4b1ccee1f2f127aa51128b41c1e7b595d3b29fac537867e08c4ffd74e40e3b68",
+        "trace-C23.png": "ec742942172edff0c2027b6e78e52399cf7ec7dac0dbe3942c6db5e0bb7b564c",
+        "trace-C4.png": "358f20137bb5f2292f9ed89bfdcd18445677ca6581b193ab9e5950566f958ad7",
+        "trace-C5.png": "d751ed7059390586fdc0af46d90272a62bc6946bbb9a0cb74f33beaad9c5c762"
+      },
+      "original_report_sha256": "5ff142fb2bf9db96114e0fc2da7d0f812dcd60764fd7c68c2124370254ff60ab",
+      "relative_links_checked": 14,
+      "reproduced_report_sha256": "5acbbaa840d5f2375d72e751480163fb81f8376b3425e2f7be795151ba2936f6",
+      "verified": true
+    },
+    "reproduced_inventory_sha256": "dbe7d0d472ae1def0f78bd595f35b8e559b1635c7f8f48d7c7b29e2046888f3d",
+    "rows_by_table": {
+      "branches": 3664,
+      "samples": 17546533,
+      "windows": 14656
+    },
+    "scientific_roots": {
+      "C23": 400,
+      "C4": 400,
+      "C5": 400
+    },
+    "source_commit": "141b0f2fb30dfcf60697885a3bc0b32ddb6d7971",
+    "source_signature": "37d993bb924898febd755dc5a98a35f0f3e13a49cccd83aaa201b82bd39cb5b6",
+    "source_tree_clean": true,
+    "verdict": "GO"
+  },
+  "protected_paired_outcomes": {
+    "all": {
+      "both": 465,
+      "hold_only": 0,
+      "neither": 365,
+      "promote_only": 370
+    },
+    "contention": {
+      "both": 335,
+      "hold_only": 0,
+      "neither": 0,
+      "promote_only": 65
+    },
+    "publisher": {
+      "both": 66,
+      "hold_only": 0,
+      "neither": 184,
+      "promote_only": 150
+    },
+    "reference": {
+      "both": 64,
+      "hold_only": 0,
+      "neither": 181,
+      "promote_only": 155
+    },
+    "surprise": {
+      "both": 343,
+      "hold_only": 0,
+      "neither": 2,
+      "promote_only": 55
+    }
+  },
+  "read_only_review": {
+    "findings_resolved": [
+      "Ambiguous components in the new root namespace",
+      "Inclusive warmup-start admission in prefix replay"
+    ],
+    "pre_extraction_differential": "Complete branch records and latency, route and censor arrays for root 11 in C1, C23, C4 and C5. Complete protected record for root 327 in each telemetry condition, including the reference surprise pair.",
+    "public_forecast_records_exact_with_file_opens_blocked": 4800,
+    "scope": "Separate review context, same machine and pinned runtime. Physical differential probes sampled roots. Full population comparisons above use the two study and migration verifiers."
+  },
+  "telemetry": {
+    "branches": 5600,
+    "claims": {
+      "demand": {
+        "candidate": "history",
+        "constant": 0.18059553103641668,
+        "counts": {
+          "contention": 400,
+          "reference": 400
+        },
+        "gain": 0.000834329084552019,
+        "lower": 0.000725034024866807,
+        "n": 800,
+        "passes": true,
+        "prior_gain": 0.0009837079037145324,
+        "se": 5.576381022677841e-05
+      },
+      "increment": {
+        "candidate": "history",
+        "constant": 0.30833333333333335,
+        "counts": {
+          "contention": 400,
+          "publisher": 400,
+          "reference": 400
+        },
+        "gain": 0.0035912050955422283,
+        "lower": 0.0003259297423509502,
+        "n": 1200,
+        "passes": true,
+        "prior_gain": 0.0036356495399866838,
+        "se": 0.0016659874257625923
+      }
+    },
+    "development_roots": 1200,
+    "exact_reproduction_sha256": {
+      "development/branches.parquet": "0fd4e025d407be3016be947a84596fe2d0f5dff8a4a9d4ec6284e2098b56b810",
+      "development/example-roots.parquet": "8215228be7f6b2cb2ee5999ef119c4cd9e528bb1bff343a3a021acfcc211f66a",
+      "development/example-tapes.parquet": "87a9c357a733a9ad53834666c35349dbe01b768d2b53dea9cc1c31073c1413c4",
+      "development/example-visits.parquet": "b3be7a5ad374a1baeb30e396984bb27d2b98952693abc0731819cb617ea45c71",
+      "development/example-writes.parquet": "0256276f37418d308f8fde68c941c532f42212774f492c59524baf4ed8daf61e",
+      "development/history-index.parquet": "381e9349653d0317ea12d8cb679b49787485a45e60dd71089997a7d3167caeef",
+      "development/observations.parquet": "341b2f121701fbbca116c9285cf4c7cadf7cb2a2b40cf8333b9b58bc3db7e1f5",
+      "development/targets.parquet": "82fae08857890bcd42e0830aacdca944c5e7377fbe0ce67292a979326874712f",
+      "development/windows.parquet": "a874df216baa946f80aa9a082a4a927c4148cd38f9139078f3cab242ee46b5d2",
+      "inventory.parquet": "6da95d265b32930ef29b511dd5483735ccdda9ad5ed8cb030d4d0f8582e35f35",
+      "protected/branches.parquet": "ced8253a53a85deecaaef70c864a804cf8643edcfbbb3f109f828e477aa0bed2",
+      "protected/evaluator-predictions.parquet": "115ac1e7787bc89b69ace83b3e9863c5f8e335ea7ffef03363cc4c1ab953a4cd",
+      "protected/example-roots.parquet": "8c5c0ff691b019a5f5993ed68f7e2fda674a8a71df9c86a437b983480cde6b50",
+      "protected/example-tapes.parquet": "fa0f280947669984ea3da24e2713863738080bff64b55a2fb99e34c124bf1064",
+      "protected/example-visits.parquet": "c7629e15bfdf3679cfc926a4cac76033b97c29ed990ca0bc4f48be5324a4b7b4",
+      "protected/example-writes.parquet": "439f22ab809ba02b7c091b5873b8f867d8199e488c2699750e15616043048fdd",
+      "protected/history-index.parquet": "5ef8346811b3747056cdddf41d339a25b01fb65b1f7a11d1c5d5314891c4a2e7",
+      "protected/observations.parquet": "da463315c45e93fd21e2e7274cc5455dbd39f30d3c014016574e43865b6e76e3",
+      "protected/predictions.parquet": "ca78fd8307c8b1312ee49058dd544e33102c13d0fa3b6e0c1883d3c5243586de",
+      "protected/targets.parquet": "e4f8bd47162e9dfdca86afee4ce1b2c85e678990329c0aeeba260be0064bf88a",
+      "protected/windows.parquet": "299708cdd85c7976039593a33416ba3abefda95e92bb7f6d1a1d461d7b699c34",
+      "scores.json": "c7f6b16cff70b86ec018cf377452eba2b86ae9f1513f9f75c1b3585c963e7852"
+    },
+    "frozen_lock_sha256": "c184d8d30b15c02c4939b71563ac8e01990d2ad5e108e791b40c57c54a5d4914",
+    "out_of_fold_forecast_records": 1200,
+    "protected_roots": 1200,
+    "regenerated_publication_sha256": {
+      "Experimental_Readiness_Report.md": "25ea1a1f9ae732f41caeabc0b4116c84b9b78ae2860d2ac8cbb3138010eeadfb",
+      "plots/action-calibration.png": "55de58acd830df6efa1c0c86ba861c11907f5b22ebab14ae1ac4ee7dc651645d",
+      "plots/information-claims.png": "7e11f70229932966b9db98e18ea45f6308d97356444c564de7938aa1cd898000",
+      "plots/physical-targets.png": "2f7999557d9a44c0a5cfbd8401cf2cf97f0fddb8069f33cb2b81dbdc8647370e",
+      "readiness.json": "ca7df2ef8a3f985149920cfc2b6f5508ef3558f5ab5fc5e604ec754d32577e6b"
+    },
+    "study_contract_sha256": "a98e0185cb8f4f4439269af87c14044609062a0325b7ba0821470db704ac7c58",
+    "verdict": "READY"
+  },
+  "tests_passed": {
+    "additional_subtests": 10,
+    "evidence_migration": 4,
+    "feasibility_pilot": 70,
+    "simulator": 8,
+    "telemetry_sufficiency": 78
+  },
+  "wheel_smoke": "Clean simulator-only environment ran both example continuations. Only NumPy and SimPy installed as runtime dependencies."
+}

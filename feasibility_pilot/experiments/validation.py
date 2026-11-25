@@ -12,7 +12,8 @@ from scipy import stats
 from experiments.config import MS, SECOND
 from experiments.runner import arms, run_root
 from experiments.storage import save_samples
-from simulator.inputs import inputs, rng
+from experiments.workload import inputs
+from simulator.workload import rng
 from simulator.model import Model, QUERY, SerialDB
 
 

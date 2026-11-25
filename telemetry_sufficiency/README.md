@@ -14,6 +14,18 @@ run=telemetry_sufficiency/results/v1
 
 Both commands read the canonical tables and write to a separate output directory. The reader checks the reconstructed scientific values against the original manifest by reproducing its deterministic transport digests in memory. The report command checks the new Markdown, all three plots, and readiness decision against their original hashes. The audit command replays every protected branch and independently recalculates predictions, comparisons, and the verdict. It compares the regenerated replay records to the retained records per root. Its new receipt binds the physical Parquet replay ledger.
 
+## Verify the extracted simulator against the locked diagnostics
+
+With both requirement locks installed, run the following from the repository root. The verifier generates the original development and protected histories in temporary storage, applies the retained fold and final fits, and compares the generated tables and scores to the publication. It prints a JSON receipt. The migration audit independently reconstructs physical measurements, admissions, windows and statistics.
+
+```sh
+python=feasibility_pilot/.venv/bin/python
+"$python" -m evidence_migration.simulator_telemetry --workers 6
+"$python" -m evidence_migration.verify --require-cleanup --workers 6
+```
+
+The [shared package](../simulator/README.md) owns the physics and observation contract. The study adapter supplies the condition, partition, onset and actions. Historical observation imports through `telemetry_sufficiency.observation` remain available.
+
 ## Run a fresh computational reproduction
 
 ```sh

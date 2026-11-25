@@ -18,6 +18,12 @@ python3 -m venv .venv
 
 Use a fresh output directory for each clean reproduction. For an independent numerical reconstruction use `.venv/bin/python -m experiments.audit --from results/frozen`. For an exact comparison of a complete second execution use `.venv/bin/python -m experiments.compare results/frozen results/reproduction`. The second run replays the original seeds. It adds no statistical replications. To regenerate the report directly from the archived observations, use `.venv/bin/python -m experiments report --from results/frozen --plots /tmp/pilot-review/plots --output /tmp/pilot-review/report.md`. This checks every regenerated summary against its frozen counterpart and writes the report and plots at the supplied destinations. The default worker count is at most eight. Supply `--workers 1` to either simulation command for serial execution.
 
+## Shared simulator and source provenance
+
+Run the commands above from the pilot directory. The historical `experiments` CLI and pilot-local `simulator.inputs.inputs` import remain available there. New pilot code uses `experiments.workload.inputs` for C1/C5 workload assignment and the root package for primitives and physics. New evaluator code can use the [shared replay API](../simulator/README.md).
+
+Each fresh manifest hashes the extracted source and the study adapters. When comparing against the frozen pilot, the comparator checks the new inventory against the expected bytes after substituting only that implementation signature into four branch tables and one validation record in memory. All scientific fields, ordered sample bytes, summaries and other validation files must agree exactly. Same-source reruns also compare the analysis source inventory. Use the separate study environment above for the historical dependency check.
+
 ## Evidence and retry behaviour
 
 - [Manifest](results/frozen/manifest.json) and [input snapshot](results/frozen/pilot.toml) identify the frozen settings, source, seed and runtime. Scientific families have independent streams. The C0 seed labels are master/C0/distribution/arrival-rate/root/arrival-or-service. Bootstrap labels are master/bootstrap/family. All stream names are hashed using SHA-256, as documented in the manifest.

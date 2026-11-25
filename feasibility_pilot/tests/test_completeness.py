@@ -18,6 +18,38 @@ def test_two_empty_inventories_cannot_reproduce(tmp_path):
         compare(first, second)
 
 
+def test_source_signature_substitution_preserves_every_scientific_field(tmp_path):
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    from experiments.compare import _with_source_signature, _inventory_digest
+    from experiments.storage import digest
+
+    table = Path("evidence/C23/branches.parquet")
+    validation = Path("validation/result.json")
+    samples = Path("evidence/C23/samples.parquet")
+
+    def example(root, signature, breach):
+        (root / table).parent.mkdir(parents=True)
+        pq.write_table(
+            pa.table({"signature": [signature], "breach": [breach]}),
+            root / table,
+            compression="zstd",
+            write_page_checksum=True,
+        )
+        save_json(root / validation, {"signature": signature, "passed": True})
+        (root / samples).write_bytes(b"unchanged latency evidence")
+        return {p: digest(root / p) for p in (table, validation, samples)}
+
+    frozen = tmp_path / "frozen"
+    original = example(frozen, "original", 0)
+    expected = _with_source_signature(frozen, original, "extracted")
+    fresh = example(tmp_path / "fresh", "extracted", 0)
+    assert _inventory_digest(fresh) == expected
+    assert _inventory_digest(example(tmp_path / "changed", "extracted", 1)) != expected
+    assert digest(frozen / table) == original[table]
+
+
 def test_identical_missing_root_file_fails_even_when_both_manifests_claim_complete(
     tmp_path,
 ):

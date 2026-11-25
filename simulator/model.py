@@ -4,7 +4,7 @@ from collections import deque
 from dataclasses import dataclass
 import hashlib
 import simpy
-from experiments.config import MS
+from .config import MS
 
 WRITE, QUERY, CLAIM, MARK = range(4)
 KINDS = ("write", "query", "claim", "mark")

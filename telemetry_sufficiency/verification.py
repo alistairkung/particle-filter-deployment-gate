@@ -68,9 +68,9 @@ def verify_pilot_receipt(pilot, *, archived=False):
             raise ValueError(
                 "A fresh study requires a canonical Parquet pilot reproduction"
             )
-        from experiments.compare import inventory_receipt
+        from experiments.compare import frozen_reproduction_receipt
 
-        reference = inventory_receipt(frozen)
+        reference = frozen_reproduction_receipt()
     expected = {
         k: reference[k]
         for k in (
@@ -88,6 +88,9 @@ def verify_pilot_receipt(pilot, *, archived=False):
         original_receipt=file_hash(original_path),
         frozen_manifest=file_hash(frozen / "manifest.json"),
     )
+    if not archived:
+        for key in ("reproduction_signature", "reproduction_inventory_sha256"):
+            expected[key] = reference[key]
     commands = pilot.get("commands")
     try:
         output = Path(commands[1][-1])

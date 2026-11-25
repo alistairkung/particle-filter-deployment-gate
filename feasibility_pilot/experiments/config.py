@@ -4,8 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import tomllib
 
-SECOND = 1_000_000_000
-MS = 1_000_000
+from simulator.config import MS, SECOND
 
 
 @dataclass(frozen=True)

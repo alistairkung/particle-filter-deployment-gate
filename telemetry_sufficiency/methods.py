@@ -8,7 +8,7 @@ from scipy.optimize import minimize
 from scipy.special import expit, logsumexp, softmax
 
 from . import CONDITIONS
-from .observation import parse_history
+from simulator.observations import parse_history
 
 LEVELS = ("prior", "age", "current", "history")
 METRICS = (

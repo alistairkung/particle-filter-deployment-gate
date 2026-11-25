@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aims5701-simulator"
+version = "1.0.0"
+description = "Reproducible synthetic FIFO database and transactional-outbox simulator"
+requires-python = ">=3.14"
+dependencies = ["numpy==2.5.5", "simpy==4.1.2"]
+
+[tool.setuptools]
+packages = ["simulator"]

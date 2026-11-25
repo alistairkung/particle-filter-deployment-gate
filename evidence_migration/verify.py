@@ -1,6 +1,7 @@
 """Verify the committed migration receipts against immutable sources and current canonical evidence."""
 
 import argparse
+import ast
 import hashlib
 import json
 import subprocess
@@ -66,13 +67,27 @@ def provenance(trees, read, require_cleanup=False):
         path = Path(TELEMETRY, relative)
         if (ROOT / path).read_bytes() != read(trees[TELEMETRY][path]):
             raise ValueError(f"Independent scientific audit changed: {path}")
-    simulator = Path(PILOT, "simulator")
-    for path in trees[PILOT]:
-        if path.is_relative_to(simulator) and (ROOT / path).read_bytes() != read(
-            trees[PILOT][path]
-        ):
-            raise ValueError(f"Frozen pilot simulator changed: {path}")
+    # The physical scheduler and named RNG primitives moved. Compare their
+    # complete definitions against the immutable source, ignoring import paths.
+    for old, new, names in (
+        ("model.py", "model.py", ("SerialDB", "Write", "Model")),
+        ("inputs.py", "workload.py", ("rng", "arrivals")),
+    ):
+        path = Path(PILOT, "simulator", old)
+        original = read(trees[PILOT][path])
+        current = (ROOT / "simulator" / new).read_bytes()
+        if _definitions(current, names) != _definitions(original, names):
+            raise ValueError(f"Historical simulator definition changed: {new}")
     return dict(byte_identical=kept, replaced_files=len(removed))
+
+
+def _definitions(source, names):
+    definitions = {
+        node.name: node
+        for node in ast.parse(source).body
+        if isinstance(node, (ast.ClassDef, ast.FunctionDef))
+    }
+    return [ast.dump(definitions[name]) for name in names]
 
 
 def canonical_files():

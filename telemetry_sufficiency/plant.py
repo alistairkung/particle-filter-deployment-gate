@@ -1,19 +1,17 @@
 """Study workload tapes, passive plant adapter and evaluator-owned paired replay."""
 
-from dataclasses import asdict, replace
+from dataclasses import asdict
 from hashlib import sha256
 import json
 from pathlib import Path
 
-import numpy as np
-
-from experiments.config import MS, SECOND, read_config
+from experiments.config import SECOND, read_config
 from experiments.observations import horizon_records, score_window
-from simulator.inputs import arrivals, rng
-from simulator.model import Model, QUERY, WRITE
+from simulator.model import QUERY, WRITE
+from simulator.replay import ObservedModel, replay_prefix, run_future
+from simulator.workload import admissions as routed_admissions, primitive_tape
 
 from . import CONDITIONS
-from .observation import Collector, DeliveryLog, INTERVAL, START
 
 NAMESPACE = "outbox-sufficiency-v1"
 CONFIG = read_config(
@@ -51,68 +49,18 @@ def raw_tape(condition, partition, index, phase, *, surprise=False, config=CONFI
             "Surprise is a future of protected reference or reference fixtures"
         )
 
-    def stream(name):
-        return rng(config.seed, NAMESPACE, *key, phase, name)
-
-    prefix = phase == "prefix"
-    seconds = config.warmup if prefix else config.horizon
-    offset = -seconds * SECOND if prefix else 0
-    at = arrivals(stream("application"), config.writes, seconds)
-    uniforms = stream("routing").random(len(at)).tolist()
-    business = stream("business").exponential(size=len(at)).tolist()
-    ids = range(-len(at), 0) if prefix else range(len(at))
-    rows = [
-        (offset + t, "write", i, u, e)
-        for t, i, u, e in zip(at, ids, uniforms, business)
-    ]
-    rates = [("reference", config.reference)]
-    if condition == "contention" or surprise:
-        rates.append(("extra", config.extra))
-    for source, rate in rates:
-        times = arrivals(stream(source + "-arrivals"), rate, seconds)
-        draws = stream(source + "-work").exponential(config.query_ms * MS, len(times))
-        sizes = np.maximum(1, np.rint(draws)).astype(np.int64).tolist()
-        for i, (t, size) in enumerate(zip(times, sizes)):
-            tick = offset + t
-            if prefix and source == "extra" and tick <= ONSET:
-                continue
-            rows.append((tick, source, -i - 1 if prefix else i, size))
-    # Python's stable sort keeps application/reference/extra ordering at exact ties.
-    return sorted(rows, key=lambda r: r[0])
+    return primitive_tape(
+        config,
+        (NAMESPACE, *key),
+        phase,
+        reference_rate=config.reference,
+        extra_rate=config.extra if condition == "contention" or surprise else 0,
+        extra_after_ns=ONSET if phase == "prefix" else None,
+    )
 
 
 def admissions(tape, share, config=CONFIG):
-    """Map each request's shared primitive draw to its routed atomic write demand."""
-    rows = []
-    for tick, source, identity, draw, *extra in tape:
-        if source == "write":
-            (business,) = extra
-            java = draw < share
-            ms = config.java_ms if java else config.ruby_ms
-            work = round(business * ms * MS) + config.insert_ms * MS
-            rows.append((tick, source, identity, work, java))
-        else:
-            rows.append((tick, source, identity, draw, False))
-    return rows
-
-
-class ObservedModel(Model):
-    """Tap only two completed physical effects, without scheduling another DB visit."""
-
-    def __init__(self, config, collector):
-        super().__init__(config, START)
-        self.collector = collector
-
-    def _commit(self, identity):
-        super()._commit(identity)
-        if self.collector is not None and self.writes[identity].eligible:
-            self.collector.event("insert", identity, self.env.now)
-
-    def _finish_mark(self, event):
-        identity = self.pending[0]
-        super()._finish_mark(event)
-        if self.collector is not None:
-            self.collector.event("mark", identity, self.env.now)
+    return routed_admissions(tape, share, config)
 
 
 def _cut_truth(visits):
@@ -135,20 +83,15 @@ def _cut_truth(visits):
 
 def start_prefix(condition, prefix, *, config=CONFIG, passive=True, deliveries=None):
     """Stop after all events at zero; freeze the public history before supplying any future."""
-    collector = Collector() if passive else None
-    model = ObservedModel(config, collector) if passive else Model(config, START)
-    feed = DeliveryLog()
-    model.schedule(admissions(prefix, config.hold, config))
-    for end in range(START + INTERVAL, 1, INTERVAL):
-        model.advance(end)
-        if collector is not None:
-            available = end if deliveries is None else deliveries.get(end, end)
-            feed.schedule(collector.seal(end), available)
-        if end == ONSET and condition == "publisher":
-            model.c = replace(config, ack_ms=config.slow_ms)
-    if collector is not None:
-        model.collector = None
-    history = [asdict(r) for r in feed.as_of(0)]
+    model, readings = replay_prefix(
+        config,
+        prefix,
+        config.hold,
+        passive=passive,
+        deliveries=deliveries,
+        ack_change=(ONSET, config.slow_ms) if condition == "publisher" else None,
+    )
+    history = [asdict(r) for r in readings]
     physical = model.physical_digest(with_routes=True)
     state = dict(
         physical_digest=physical,
@@ -229,8 +172,7 @@ def replay(
             config=config,
         )
     share = config.promote if branch.endswith("promote") else config.hold
-    model.schedule(admissions(future, share, config))
-    model.advance(config.horizon * SECOND)
+    run_future(model, future, share)
     model.admissions_digest = verify_admissions(model, prefix, future, share)
     return model, prefix, future, cut
 
