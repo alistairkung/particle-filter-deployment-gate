@@ -4,8 +4,6 @@ import numpy as np
 
 from telemetry_sufficiency.scoring import BOOTSTRAPS
 
-METHODS = ("full", "ablated", "history", "age", "current", "prior")
-
 
 def _calibration(actual, probability):
     indices = np.searchsorted(np.arange(1, 10) / 10, probability, side="right")
@@ -39,19 +37,21 @@ def _losses(rows, method):
 
 def _population(rows, backlog_median):
     models = {}
-    for method in METHODS:
+    for method in rows[0]["predictions"]:
         pred, truth, signed_loss = _losses(rows, method)
         masks = dict(
             all=np.ones(len(rows), dtype=bool),
             low=np.array(
                 [
-                    r["pending"] is not None and r["pending"] <= backlog_median
+                    r["pending"] is not None
+                    and r["pending"] <= r.get("backlog_median", backlog_median)
                     for r in rows
                 ]
             ),
             high=np.array(
                 [
-                    r["pending"] is not None and r["pending"] > backlog_median
+                    r["pending"] is not None
+                    and r["pending"] > r.get("backlog_median", backlog_median)
                     for r in rows
                 ]
             ),
@@ -70,6 +70,18 @@ def _population(rows, backlog_median):
                 for group, mask in masks.items()
             },
         )
+        if "regime_probabilities" in rows[0]["predictions"][method]:
+            estimated = np.asarray(
+                [r["predictions"][method]["regime_probabilities"] for r in rows]
+            )
+            labels = np.asarray([[r["regime"] == z for z in "ABC"] for r in rows])
+            error = [
+                r["predictions"][method]["mean_work_s"] - r["work_s"] for r in rows
+            ]
+            models[method].update(
+                regime_brier=float(np.mean(np.sum((estimated - labels) ** 2, axis=1))),
+                posterior_work_rmse_s=float(np.sqrt(np.mean(np.square(error)))),
+            )
     return dict(n=len(rows), models=models)
 
 
@@ -100,7 +112,7 @@ def _paired_interval(groups, comparator, seed):
     )
 
 
-def score_roots(rows, *, backlog_median, seed):
+def score_roots(rows, *, seed, backlog_median=None):
     """Use identical root resamples for both predeclared contrasts."""
     if len({r["key"] for r in rows}) != len(rows):
         raise ValueError("duplicate evaluation root")
@@ -113,12 +125,15 @@ def score_roots(rows, *, backlog_median, seed):
         raise ValueError(
             "expected complete, balanced A/B/C root groups with at least two each"
         )
+    methods = rows[0]["predictions"].keys()
+    if any(r["predictions"].keys() != methods for r in rows):
+        raise ValueError("methods differ between scored roots")
     populations = {
         z: _population(g, backlog_median) for z, g in zip("ABC", groups, strict=True)
     }
     populations["all"] = _population(rows, backlog_median)
-    return dict(
-        populations=populations,
-        primary=_paired_interval(groups, "history", seed),
-        ablation=_paired_interval(groups, "ablated", seed),
-    )
+    result = dict(populations=populations)
+    for name, comparator in (("primary", "history"), ("ablation", "ablated")):
+        if {"full", comparator} <= methods:
+            result[name] = _paired_interval(groups, comparator, seed)
+    return result

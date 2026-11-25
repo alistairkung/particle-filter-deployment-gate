@@ -11,13 +11,18 @@ import numpy as np
 
 from simulator.config import SECOND
 from simulator.observations import INTERVAL
+from telemetry_sufficiency.archive import protect_destination
 from telemetry_sufficiency.custody import file_hash, save
 from telemetry_sufficiency.parquet_evidence import read_fit
 
-from telemetry_sufficiency.archive import protect_destination
-
 from ..evaluation import score_roots
-from .development import DEVELOPMENT, development_inventory, fit_fold, replay_root
+from .development import (
+    DEVELOPMENT,
+    development_inventory,
+    development_seeds,
+    fit_fold,
+    replay_root,
+)
 from .emission_diagnostics import (
     diagnostic_rows,
     fold_diagnostics,
@@ -63,13 +68,10 @@ def _diagnose_history(root, intervals, fit, seed):
     )
     filtering_s = perf_counter() - start
     # Distinct filter/forecast streams; identical forecast seeds for full and ablated work.
-    forecast_seed = int(
-        np.random.default_rng([seed, SEED, 2]).bit_generator.random_raw()
-    )
     start = perf_counter()
     predictions = {
         name: forecast(
-            posterior, fit.closure, pairs=PAIRS, seed=forecast_seed, work_by_regime=law
+            posterior, fit.closure, pairs=PAIRS, seed=seed, work_by_regime=law
         )
         for name, law in (("full", None), ("ablated", fit.cut_work_ns))
     }
@@ -85,6 +87,7 @@ def _diagnose_history(root, intervals, fit, seed):
         promote=root.promote,
         pending=history[-1].pending_count,
         work_s=root.cut_work_s,
+        backlog_median=fit.backlog_median,
         predictions=risks,
         paired_cells=cells,
         posterior_regime=posterior.regime_probabilities,
@@ -129,8 +132,7 @@ def _delivery_checks(intervals, fit, seed):
 
 def _validate_fold(fold, output):
     roots = development_inventory()
-    rng = np.random.default_rng([SEED, 0])
-    seeds = {r.key: int(rng.bit_generator.random_raw()) for r in roots}
+    seeds = development_seeds(roots, SEED)
     training = [r for r in roots if r.fold != fold]
     held = [r for r in roots if r.fold == fold and r.panel]
     fit = fit_fold(training, {r.key: replay_root(r) for r in training})
@@ -205,13 +207,6 @@ def run(output, workers):
         rows = [r for fold in folds for r in fold["roots"]]
         flags = repeatable_discrepancies([f["diagnostics"] for f in folds])
         # Each OOF root is scored against exactly its own held-out action outcomes.
-        all_roots = development_inventory()
-        from telemetry_sufficiency.parquet_evidence import histories
-
-        counts = [
-            r["history"][-1]["pending_count"]
-            for r in histories(DEVELOPMENT, [asdict(r) for r in all_roots])
-        ]
         report = dict(
             status="requires-review",
             particles=PARTICLES,
@@ -219,9 +214,7 @@ def run(output, workers):
             roots=len(rows),
             flags=flags,
             state=_state_diagnostics(rows),
-            actions=score_roots(
-                rows, backlog_median=float(np.median(counts)), seed=SEED
-            ),
+            actions=score_roots(rows, seed=SEED),
             hardware=platform.machine(),
             workers=workers,
             elapsed_s=perf_counter() - start,

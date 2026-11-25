@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
+
 from simulator.config import SECOND
 from telemetry_sufficiency import CONDITIONS
 from telemetry_sufficiency.custody import digest
@@ -90,6 +92,7 @@ class FoldFit:
     cut_work_ns: dict
     thresholds: dict
     training_digest: str
+    backlog_median: float
 
 
 def fit_fold(training, replays):
@@ -109,6 +112,7 @@ def fit_fold(training, replays):
         work,
         training_thresholds(samples),
         digest("\n".join(sorted(r.key for r in training)).encode()),
+        float(np.median([replays[r.key][-1].reading.pending_count for r in training])),
     )
 
 
@@ -130,3 +134,9 @@ def study_source_digest():
         name = path.relative_to(source).as_posix().encode()
         combined.update(name + b"\0" + sha256(path.read_bytes()).digest())
     return combined.hexdigest()
+
+
+def development_seeds(roots, seed):
+    """Assign independent seeds to inventory slots before forecasts or scoring."""
+    random = np.random.default_rng([seed, 0])
+    return {r.key: int(random.bit_generator.random_raw()) for r in roots}
