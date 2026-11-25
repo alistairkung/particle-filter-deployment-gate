@@ -1,6 +1,6 @@
 # AIMS5701 · Outbox telemetry sufficiency study
 
-**Status — awaiting approval.** This protocol closes the design grill. It specifies a bounded readiness study at one decision point. The companion [implementation and verification contract](IMPLEMENTATION_SPEC.md) defines execution, evidence and acceptance. Implementation and protected evaluation follow approval.
+**Status — approved for implementation.** This protocol closes the design grill. It specifies a bounded readiness study at one decision point. The companion [implementation and verification contract](IMPLEMENTATION_SPEC.md) defines execution, evidence and acceptance. Implementation and protected evaluation follow approval.
 
 ## Question and scope
 
