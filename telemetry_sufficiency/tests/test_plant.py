@@ -3,9 +3,9 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
+from telemetry_sufficiency import plant
 from experiments.config import MS, SECOND
 from simulator.inputs import arrivals, rng
-from telemetry_sufficiency import plant
 
 
 def test_publisher_receives_nominal_reference_queries_in_both_prefix_segments():
