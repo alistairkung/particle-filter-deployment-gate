@@ -6,18 +6,19 @@ import numpy as np
 from scipy.special import betainc, expit, log_expit, logsumexp
 
 from simulator.observations import INTERVAL
-from ..emissions import (
+from ..emissions import REGIMES, _context_columns
+from ..emission_families import (
+    mark_logmass,
+    nb_log_parameters,
+    positive_nb_logmass,
+    normal_interval,
+)
+from ..outbox_support import (
     BAND_UPPER,
     MAX_MARKS,
-    REGIMES,
-    _age_support,
-    _band_mask,
-    _context_columns,
-    _mark_logmass,
-    _nb_logs,
-    _nb_positive,
-    _delay_mask,
-    _normal_interval,
+    age_support,
+    feasible_bands,
+    feasible_delay_bands,
 )
 
 
@@ -35,7 +36,7 @@ def training_thresholds(samples):
 
 def _pending_survival(k, log_excess, mean_log, size_log):
     """P(N > threshold) where k is the threshold minus the physical lower bound."""
-    size, _, logq, log_positive = _nb_logs(mean_log, size_log)
+    size, _, logq, log_positive = nb_log_parameters(mean_log, size_log)
     # NB positive-excess conditional survival is sf(k)/(1-pmf(0)) for k > 0.
     # P(N > L) and P(N > a value below L) are available without special functions.
     result = np.where(k < 0, 1.0, np.exp(log_excess))
@@ -59,7 +60,7 @@ def _count_events(
         part = slice(start, start + 16)
         cap = MAX_MARKS[reg[part]]
         marks = np.arange(cap.max() + 1)
-        logmass = _mark_logmass(
+        logmass = mark_logmass(
             marks, centre[part, None], scale[part, None], cap[:, None]
         )
         mass = np.where(marks <= cap[:, None], np.exp(logmass), 0.0)
@@ -138,13 +139,13 @@ def diagnostic_rows(model, contexts, reading, weights, thresholds, rng):
     cap = MAX_MARKS[reg]
     with np.errstate(divide="ignore"):
         logw = np.log(weights)
-    logmarks = np.where(marks <= cap, _mark_logmass(marks, centre, scale, cap), -np.inf)
+    logmarks = np.where(marks <= cap, mark_logmass(marks, centre, scale, cap), -np.inf)
     if marks == 0:
         mark_left = np.zeros(len(reg))
     else:
         mark_left = np.exp(
-            _normal_interval(-0.5, np.minimum(marks - 1, cap) + 0.5, centre, scale)
-            - _normal_interval(-0.5, cap + 0.5, centre, scale)
+            normal_interval(-0.5, np.minimum(marks - 1, cap) + 0.5, centre, scale)
+            - normal_interval(-0.5, cap + 0.5, centre, scale)
         )
     rows["mark_pit"] = (
         float(weights @ (mark_left + rng.random() * np.exp(logmarks))),
@@ -162,7 +163,7 @@ def diagnostic_rows(model, contexts, reading, weights, thresholds, rng):
     at_lower = excess == 0
     positive = excess > 0
     logpending[at_lower] = log_expit(logit[at_lower])
-    logpending[positive] = log_expit(-logit[positive]) + _nb_positive(
+    logpending[positive] = log_expit(-logit[positive]) + positive_nb_logmass(
         excess[positive], mean_log[positive], model.nb[-1]
     )
     pending_left = 1 - _pending_survival(
@@ -176,8 +177,8 @@ def diagnostic_rows(model, contexts, reading, weights, thresholds, rng):
 
     age = reading.oldest_pending_age_s
     band = int(np.searchsorted(BAND_UPPER, age))
-    low, high, exact = _age_support(prev, marks, pending, prior_age)
-    mask = _band_mask(low, high)
+    low, high, exact = age_support(prev, marks, pending, prior_age)
+    mask = feasible_bands(low, high)
     timing_features = np.column_stack((pending_features, np.full(len(reg), pending)))
     probs = model.age.probabilities(model.designs[2].matrix(reg, timing_features), mask)
     deterministic = np.isfinite(exact)
@@ -199,7 +200,7 @@ def diagnostic_rows(model, contexts, reading, weights, thresholds, rng):
             reg, np.column_stack((timing_features, np.full(len(reg), band)))
         )
         delay_probs = model.delay.probabilities(
-            x, _delay_mask(reg, marks, prev, prior_age, age)
+            x, feasible_delay_bands(reg, marks, prev, prior_age, age)
         )
         for j, p in enumerate(np.exp(logw) @ delay_probs):
             rows[f"delay_band_{j}_given_age_{band}"] = (
