@@ -102,7 +102,6 @@ def attempt(run, stage, *, started=None):
         archive = run / "failures" / str(started)
         incoming = receipt_snapshot(run)
         manifest = {"completed": {}, "attempts": []}
-        succeeded = False
         try:
             if path.exists():
                 previous = c.read(path)
@@ -133,7 +132,12 @@ def attempt(run, stage, *, started=None):
                         readiness.unlink(missing_ok=True)
                 manifest["completed"].pop("report", None)
             yield manifest
-            succeeded = True
+            if stage in manifest["completed"]:
+                verify_files(run, manifest["completed"][stage])
+                if stage in ("develop", "evaluate"):
+                    # A crash during cleanup leaves verifiable tables and a resumable run.
+                    c.save(path, manifest)
+                    _clear_root_markers(run, stage)
         except BaseException as exc:
             archive_snapshot(archive, incoming)
             # A failing validation may have produced fresh diagnostic evidence.
@@ -185,17 +189,17 @@ def attempt(run, stage, *, started=None):
                 )
             )
             c.save(path, manifest)
-            if (
-                succeeded
-                and stage in ("develop", "evaluate")
-                and stage in manifest["completed"]
-            ):
-                # Hold the stage lock through verification and removal of owned retry markers.
-                verify_files(run, manifest["completed"][stage])
-                partition = "development" if stage == "develop" else "protected"
-                for root in roots(partition):
-                    marker = run / "work" / partition / (root["key"] + ".json")
-                    marker.unlink(missing_ok=True)
+
+
+def _clear_root_markers(run, stage):
+    from .archive import protect_destination
+
+    partition = "development" if stage == "develop" else "protected"
+    for root in roots(partition):
+        marker = run / "work" / partition / (root["key"] + ".json")
+        if marker.exists():
+            protect_destination(marker)
+            marker.unlink()
 
 
 def _fixture_validation(run):
@@ -467,12 +471,11 @@ def execute(stage, run, workers):
         report=report,
     )
     run = Path(run).resolve()
-    if run.is_relative_to(PILOT):
-        raise ValueError("Study output path inside frozen pilot")
+    from .archive import historical, protect_destination
+
+    protect_destination(run)
     if workers < 1:
         raise ValueError("Workers must be positive")
-    from .archive import historical
-
     if historical(run):
         raise ValueError(
             "Retained publication: use --output to regenerate audit or report in a separate directory"

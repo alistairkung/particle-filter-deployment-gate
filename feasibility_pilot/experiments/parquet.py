@@ -1,6 +1,8 @@
 """Typed pilot observations. One sample row group holds one independent root."""
 
 import hashlib
+import math
+import sys
 from pathlib import Path
 import tempfile
 
@@ -8,6 +10,9 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
+
+
+EVIDENCE_FORMAT = "parquet-v1"
 
 
 def _fields(names, dtype, nullable=False):
@@ -64,6 +69,66 @@ SAMPLE = pa.schema(
 )
 
 
+# A missing nullable measurement differs from a present, explicitly null value.
+# Scientific branches have no route-blind trace; C1 requires one.
+ROOT_STRUCT = pa.struct(
+    [BRANCH.field(k) for k in ("family", "root", "signature", "sample_digest")]
+)
+BRANCH_DATA = [
+    f
+    for f in BRANCH
+    if f.name not in {*ROOT_STRUCT.names, "arm", "trace", "sample_values_sha256"}
+]
+BRANCH_STRUCT = pa.struct(BRANCH_DATA)
+PLACEBO_STRUCT = pa.struct(
+    [*BRANCH_DATA, pa.field("trace", pa.string(), nullable=False)]
+)
+WINDOW_STRUCT = pa.struct(list(WINDOW)[len(KEY) :])
+
+
+def _check_fields(row, fields, location):
+    """Reject fields Arrow would silently ignore and coercions that lose observations."""
+    if not isinstance(row, dict) or set(row) != set(fields.names):
+        actual = set(row) if isinstance(row, dict) else set()
+        raise ValueError(
+            f"{location}: unexpected or missing fields {actual ^ set(fields.names)}"
+        )
+    for field in fields:
+        value = row[field.name]
+        path = f"{location}.{field.name}"
+        dtype = field.type
+        if value is None and field.nullable:
+            continue
+        if pa.types.is_struct(dtype):
+            _check_fields(value, dtype, path)
+            continue
+        if pa.types.is_integer(dtype):
+            limit = 1 << (dtype.bit_width - 1)
+            valid = (
+                isinstance(value, (int, np.integer))
+                and not isinstance(value, bool)
+                and -limit <= int(value) < limit
+            )
+        elif pa.types.is_floating(dtype):
+            if isinstance(value, (int, np.integer)) and not isinstance(value, bool):
+                integer = int(value)
+                valid = abs(integer) <= sys.float_info.max and float(integer) == integer
+            else:
+                valid = (
+                    isinstance(value, (float, np.floating))
+                    and math.isfinite(value)
+                    and float(value) == value
+                )
+        elif pa.types.is_boolean(dtype):
+            valid = isinstance(value, (bool, np.bool_))
+        elif pa.types.is_string(dtype):
+            valid = isinstance(value, str)
+        else:
+            raise TypeError(f"Unsupported pilot schema type {dtype}")
+        if not valid:
+            raise ValueError(f"{path}: expected lossless {dtype}, got {value!r}")
+
+
 def _sample_hash(ns, java, censored):
     checksum = hashlib.sha256()
     for array in (ns.astype("<i8", copy=False), java, censored):
@@ -75,7 +140,8 @@ def _sample_table(key, arrays):
     ns, java, censored = arrays
     n = len(ns)
     if (
-        ns.dtype != np.int64
+        n > np.iinfo(np.int32).max + 1
+        or ns.dtype != np.int64
         or java.dtype != bool
         or censored.dtype != bool
         or any(a.shape != (n,) for a in arrays)
@@ -94,9 +160,20 @@ def _sample_table(key, arrays):
 
 
 def _encode_root(family, root_id, record, samples):
+    if set(record) != {"family", "root", "signature", "sample_digest", "branches"}:
+        raise ValueError(f"Unexpected or missing root fields for {family}/{root_id}")
+    _check_fields(
+        {k: record[k] for k in ROOT_STRUCT.names}, ROOT_STRUCT, f"{family}/{root_id}"
+    )
     if (record["family"], record["root"]) != (family, root_id):
         raise ValueError(f"Root identity mismatch for {family}/{root_id}")
     branches = record["branches"]
+    if (
+        not isinstance(branches, dict)
+        or not branches
+        or any(not isinstance(arm, str) for arm in branches)
+    ):
+        raise ValueError(f"Invalid arms for {family}/{root_id}")
     expected = {
         arm + suffix for arm in branches for suffix in ("_ns", "_java", "_censored")
     }
@@ -105,11 +182,24 @@ def _encode_root(family, root_id, record, samples):
     root_samples, branch_rows, window_rows = [], [], []
     for arm, branch in sorted(branches.items()):
         key = dict(family=family, root=root_id, arm=arm)
+        if not isinstance(branch, dict) or not isinstance(branch.get("windows"), list):
+            raise ValueError(f"Invalid arm or missing windows for {key}")
+        row = {k: v for k, v in branch.items() if k != "windows"}
+        _check_fields(
+            row,
+            PLACEBO_STRUCT if family == "C1" else BRANCH_STRUCT,
+            f"{family}/{root_id}/{arm}",
+        )
+        for index, window in enumerate(branch["windows"], 1):
+            _check_fields(
+                window, WINDOW_STRUCT, f"{family}/{root_id}/{arm}/window {index}"
+            )
+            if window["window"] != index:
+                raise ValueError(f"Incorrect window order for {key}")
         arrays = [samples[arm + suffix] for suffix in ("_ns", "_java", "_censored")]
         if len(arrays[0]) != branch["scored"]:
             raise ValueError(f"Scored cohort mismatch for {key}")
         root_samples.append(_sample_table(key, arrays))
-        row = {k: v for k, v in branch.items() if k != "windows"}
         branch_rows.append(
             dict(
                 **key,

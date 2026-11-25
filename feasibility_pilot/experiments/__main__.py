@@ -18,6 +18,8 @@ import tempfile
 import time
 
 from experiments.config import read_config
+from experiments.parquet import EVIDENCE_FORMAT
+from experiments.publications import retained, require_output
 from experiments.storage import (
     budgets,
     compute_root,
@@ -65,6 +67,7 @@ def git(*args):
 
 def new_manifest(config_path, c, signature, files):
     return dict(
+        evidence_format=EVIDENCE_FORMAT,
         signature=signature,
         input_digests=files,
         source_files=source_files(),
@@ -152,7 +155,13 @@ def execute_scientific(c, out, signature, workers, manifest):
                     ):
                         if done % 100 == 0:
                             print(f"{family}: {done} complete", flush=True)
-                consolidate(pending, out, c, family, signature)
+                try:
+                    consolidate(pending, out, c, family, signature)
+                except Exception:
+                    archive = out / "failures" / f"{time.time_ns()}-{family}-workers"
+                    archive.parent.mkdir(exist_ok=True)
+                    pending.rename(archive)
+                    raise
             counts[family] = count
     finally:
         manifest["completed"] = {
@@ -171,16 +180,27 @@ def validate_and_publish(c, out, workers, signature):
 
     with tempfile.TemporaryDirectory(prefix=".validation-", dir=out) as name:
         work = Path(name)
+        complete = False
         try:
             validation = validate(c, work, workers)
             if validation.get("placebo") and all(
                 row["passed"] for row in validation["placebo"]
             ):
                 consolidate(work, out, c, "C1", signature, validation["placebo"])
+            complete = validation["passed"]
         finally:
+            if not complete:
+                archive = out / "failures" / f"{time.time_ns()}-validation"
+                archive.parent.mkdir(exist_ok=True)
+                work.rename(archive)
+                work = archive
             for path in (work / "validation").glob("*.json"):
                 (out / "validation").mkdir(exist_ok=True)
-                path.replace(out / "validation" / path.name)
+                destination = out / "validation" / path.name
+                if complete:
+                    path.replace(destination)
+                else:
+                    shutil.copyfile(path, destination)
     return validation
 
 
@@ -215,7 +235,7 @@ def previous_publication(manifest, out):
     if not isinstance(record, dict) or not isinstance(record.get("path"), str):
         return None
     candidate = Path(record["path"]).resolve()
-    if candidate == FROZEN_REPORT:
+    if retained(candidate):
         return None
     if candidate.is_relative_to(BASE) or candidate.is_relative_to(out.resolve()):
         if candidate.is_file() and digest(candidate) == record.get("sha256"):
@@ -321,15 +341,8 @@ def main():
         parser.error("Validation requires enabled invariant checks")
     config_path = out / "pilot.toml" if args.command == "report" else args.config
     if args.command == "report":
-        for destination in (args.plots.resolve(), args.output.resolve()):
-            if (
-                destination == FROZEN_REPORT
-                or destination.is_relative_to(FROZEN)
-                or destination.is_relative_to(BASE / "plots")
-            ):
-                parser.error(
-                    "Use a separate output path to regenerate the archived report and plots"
-                )
+        require_output(args.plots)
+        require_output(args.output)
     if out.resolve() == FROZEN:
         if args.command != "report":
             parser.error(
@@ -343,6 +356,7 @@ def main():
             )
         render(read_config(config_path), out, signature, args, manifest, archived=True)
         return
+    require_output(out)
     with exclusive_output(out):
         path = out / "manifest.json"
         manifest = {}

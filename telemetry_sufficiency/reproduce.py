@@ -16,12 +16,11 @@ def reproduce(receipt):
     from .workflow import attempt
 
     receipt = Path(receipt).resolve()
-    if receipt.is_relative_to(PILOT):
-        raise ValueError("Study output path inside frozen pilot")
+    from .archive import historical, protect_destination
+
+    protect_destination(receipt)
     if receipt.name != "pilot-reproduction.json":
         raise ValueError("Use the run directory's pilot-reproduction.json")
-    from .archive import historical
-
     if historical(receipt.parent):
         raise ValueError("Use a fresh run directory for pilot reproduction")
     started = time.time_ns()

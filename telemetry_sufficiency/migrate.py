@@ -19,6 +19,9 @@ def source(name):
 
 
 def migrate(run):
+    from .archive import protect_destination
+
+    protect_destination(run)
     inventory = json.loads(source("inventory.json"))
     if inventory != c.inventory():
         raise ValueError("Archived inventory differs from the frozen seed scheme")

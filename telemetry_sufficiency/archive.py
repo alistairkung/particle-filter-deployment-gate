@@ -4,6 +4,7 @@ import gzip
 import hashlib
 import io
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from . import PILOT, custody as c, parquet_evidence as p
 
@@ -11,9 +12,17 @@ V1 = Path(__file__).resolve().parent / "results/v1"
 MANIFEST = "95bcad7fcf1fd103389d9ae22e6b5316c074861058002cd44a9af75c27f41b8d"
 
 
+def protect_destination(path):
+    path = Path(path).resolve()
+    if path.is_relative_to(PILOT):
+        raise ValueError("Study output path inside frozen pilot")
+    if path.is_relative_to(V1):
+        raise ValueError("Study output path inside retained telemetry publication")
+
+
 def historical(run):
     path = run / "manifest.json"
-    return run.resolve() == V1 or (path.is_file() and c.file_hash(path) == MANIFEST)
+    return path.is_file() and c.file_hash(path) == MANIFEST
 
 
 def legacy_digest(run, name):
@@ -48,21 +57,34 @@ def verify_inputs(run):
 
 
 def regenerate(stage, run, output, workers):
-    from .workflow import compute_audit
-    from .report import report
-
     output = output.resolve()
-    if (
-        output.is_relative_to(run)
-        or run.is_relative_to(output)
-        or output.is_relative_to(PILOT)
-        or output.is_relative_to(V1)
-    ):
+    protect_destination(output)
+    if output.is_relative_to(run) or run.is_relative_to(output):
         raise ValueError("Choose a separate output directory outside retained evidence")
+    if workers < 1:
+        raise ValueError("Workers must be positive")
     if stage not in ("audit", "report"):
         raise ValueError("Read-only regeneration supports audit and report")
     manifest = verify_inputs(run)
-    output.mkdir(parents=True, exist_ok=True)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory(
+        prefix="sufficiency-replay-", dir=output.parent
+    ) as temporary:
+        stage_dir = Path(temporary)
+        _regenerate(stage, run, stage_dir, workers, manifest)
+        artifacts = [p for p in stage_dir.rglob("*") if p.is_file()]
+        # A preexisting plot or subdirectory may alias a frozen publication.
+        for artifact in artifacts:
+            protect_destination(output / artifact.relative_to(stage_dir))
+        for artifact in artifacts:
+            destination = output / artifact.relative_to(stage_dir)
+            c.atomic(destination, lambda stream: stream.write(artifact.read_bytes()))
+
+
+def _regenerate(stage, run, output, workers, manifest):
+    from .workflow import compute_audit
+    from .report import report
+
     if stage == "audit":
         ledger, summary = compute_audit(run, output, workers)
         reference = run / "protected"

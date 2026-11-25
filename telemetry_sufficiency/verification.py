@@ -39,7 +39,9 @@ def verify_report_evidence(run):
             "Independent scientific reconstruction missing, incomplete or stale"
         )
 
-    verify_pilot_receipt(read(run / "pilot-reproduction.json"))
+    verify_pilot_receipt(
+        read(run / "pilot-reproduction.json"), archived=historical(run)
+    )
     review = read(run / "verification-review.json")
     findings = review.get("findings")
     if isinstance(findings, str):
@@ -56,12 +58,16 @@ def verify_report_evidence(run):
     return verdict
 
 
-def verify_pilot_receipt(pilot):
+def verify_pilot_receipt(pilot, *, archived=False):
     frozen = PILOT / "results/frozen"
     original_path = frozen / "summary/clean-reproduction.json"
     original = read(original_path)
     reference = original
-    if pilot.get("format") == "parquet-v1":
+    if not archived:
+        if pilot.get("format") != "parquet-v1":
+            raise ValueError(
+                "A fresh study requires a canonical Parquet pilot reproduction"
+            )
         from experiments.compare import inventory_receipt
 
         reference = inventory_receipt(frozen)

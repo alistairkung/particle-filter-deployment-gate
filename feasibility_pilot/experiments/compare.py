@@ -7,8 +7,9 @@ import hashlib
 import json
 from pathlib import Path
 
+from experiments.publications import require_output
 from experiments.config import read_config
-from experiments.parquet import read_records, iter_samples
+from experiments.parquet import EVIDENCE_FORMAT, read_records, iter_samples
 from experiments.runner import arms
 from experiments.storage import budgets, digest, load_json, save_json
 
@@ -51,6 +52,8 @@ def expected_inventory(config):
 
 
 def _check_manifest(root, manifest, config_path):
+    if manifest.get("evidence_format", EVIDENCE_FORMAT) != EVIDENCE_FORMAT:
+        raise ValueError(f"{root}: unsupported pilot evidence format")
     config = read_config(config_path)
     expected = budgets(config)
     input_digest = digest(config_path)
@@ -113,7 +116,7 @@ def inventory_receipt(root, config_path=None):
     for path in sorted(expected):
         ledger.update(f"{path} {digest(root / path)}\n".encode())
     return {
-        "format": "parquet-v1",
+        "format": EVIDENCE_FORMAT,
         "passed": True,
         "signature": manifest["signature"],
         "files_compared": len(expected),
@@ -168,6 +171,8 @@ if __name__ == "__main__":
         help="Optional path for a new Parquet comparison receipt",
     )
     args = parser.parse_args()
+    if args.receipt:
+        require_output(args.receipt)
     result = compare(args.original, args.reproduced)
     if args.receipt:
         save_json(args.receipt, result)

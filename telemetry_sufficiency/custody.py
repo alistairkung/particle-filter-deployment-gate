@@ -49,7 +49,10 @@ def branch_names(row):
 
 
 def atomic(path, writer):
+    from .archive import protect_destination
+
     path = Path(path)
+    protect_destination(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as stream:
         tmp = Path(stream.name)
