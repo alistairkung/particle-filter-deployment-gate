@@ -12,7 +12,7 @@ import time
 import numpy as np
 
 from telemetry_sufficiency import CONDITIONS
-from telemetry_sufficiency.custody import save
+from telemetry_sufficiency.custody import file_hash, save
 
 from .budgets import particle_change, rollout_variation
 from .development import development_inventory, fit_fold, replay_root
@@ -44,6 +44,15 @@ def validate_evidence(path, expected_digest, *, diagnostics_only=False):
         raise ValueError(
             "Numerical budget selection requires validated development evidence"
         )
+    for name, expected in report.get("evidence_digests", {}).items():
+        relative = Path(name)
+        target = (path.parent / relative).resolve()
+        if relative.is_absolute() or not target.is_relative_to(
+            path.parent.resolve().parent
+        ):
+            raise ValueError("Validation evidence location escapes its bundle")
+        if file_hash(target) != expected:
+            raise ValueError(f"Validation evidence digest mismatch for {name}")
     return report
 
 
@@ -316,15 +325,8 @@ def main(argv=None):
                 raise ValueError(
                     "Development validation source digest differs from the current implementation"
                 )
-            for name, expected in validation["evidence_digests"].items():
-                relative = Path(name)
-                if relative.is_absolute() or ".." in relative.parts:
-                    raise ValueError("Invalid validation evidence location")
-                with (args.validation.parent / relative).open("rb") as stream:
-                    if hashlib.file_digest(stream, "sha256").hexdigest() != expected:
-                        raise ValueError(
-                            f"Validation evidence digest mismatch for {name}"
-                        )
+            if not validation.get("evidence_digests"):
+                raise ValueError("Development validation receipt has no bound evidence")
         else:
             report["validation_status"] = "requires-review"
         from .development import study_source_digest

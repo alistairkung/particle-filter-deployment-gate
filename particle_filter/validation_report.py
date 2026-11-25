@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 from telemetry_sufficiency.custody import file_hash, save
@@ -49,6 +50,12 @@ def _diagnostic_plot(folds, dest):
 
 
 def summarise(teacher, sequential, phase, output):
+    # Keep the report and its sibling evidence directories together when relocating a run.
+    bundle = output.resolve().parent
+    if any(
+        not p.resolve().is_relative_to(bundle) for p in (teacher, sequential, phase)
+    ):
+        raise ValueError("Validation inputs must be inside the output evidence bundle")
     teacher_summary = json.loads((teacher / "summary.json").read_text())
     sequence = json.loads((sequential / "sequential.json").read_text())
     phase_report = json.loads(phase.read_text())
@@ -84,7 +91,9 @@ def summarise(teacher, sequential, phase, output):
     result = dict(
         status=status,
         source_digest=study_source_digest(),
-        evidence_digests={k: file_hash(p) for k, p in paths.items()},
+        evidence_digests={
+            os.path.relpath(p, output): file_hash(p) for p in paths.values()
+        },
         teacher_flags=flags,
         sequential_flags=sequence["flags"],
         development_roots=teacher_summary["roots"],
