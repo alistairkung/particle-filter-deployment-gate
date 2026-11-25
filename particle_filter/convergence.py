@@ -112,12 +112,18 @@ def _risk_panel(panel, posteriors, k, *, ablated, fixed, name, purpose, estimate
     return values, elapsed
 
 
-def _select_particles(panel, estimated):
+def _select_particles(panel, estimated, first_comparison_only):
     previous, first, elapsed = _particle_panel(panel, 128, estimate=estimated)
     for n in (256, 512, 1024):
         current, second, elapsed = _particle_panel(panel, n, estimate=2 * elapsed)
         comparison = particle_change(first, second)
         panel.report["particle_change"][str(n)] = comparison
+        if first_comparison_only:
+            panel.report["reason"] = (
+                "Measured the 128-to-256 development comparison while "
+                "calibration remains unresolved. Neither N nor K is selected."
+            )
+            return None, None, None
         if comparison["passes"]:
             return n // 2, previous, current
         previous, first = current, second
@@ -211,7 +217,12 @@ def _run_panel(args, report, deadline):
             "benchmark-one-pair", compute_risk, [(0, first[0], 1, args.seed, False)]
         )
         target_jobs = 144 / args.workers
-        n, small, large = _select_particles(panel, prefix_s * target_jobs)
+        n, small, large = _select_particles(
+            panel, prefix_s * target_jobs, args.state_check_only
+        )
+        if n is None:
+            report["status"] = "diagnostics-only"
+            return
         k, risk_time = _select_rollouts(panel, small, pair_s * target_jobs * 64)
         report["particle_loss_change"] = _compare_loss(
             panel, small, large, k, targets, risk_time
@@ -250,6 +261,11 @@ def main(argv=None):
         action="store_true",
         help="Collect development measurements while validation remains open.",
     )
+    parser.add_argument(
+        "--state-check-only",
+        action="store_true",
+        help="Measure the first particle doubling when calibration prevents a lock.",
+    )
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument(
         "--max-hours", required=True, type=float, help="Available development wall time"
@@ -261,6 +277,8 @@ def main(argv=None):
         parser.error("Expected positive worker and wall-time budgets")
     if bool(args.validation) != bool(args.validation_sha256):
         parser.error("Supply validation evidence and its digest together")
+    if args.state_check_only and not args.diagnostics_only:
+        parser.error("--state-check-only requires --diagnostics-only")
     if not args.validation and not args.diagnostics_only:
         parser.error("A budget candidate requires development validation evidence")
     from telemetry_sufficiency.archive import protect_destination
@@ -271,6 +289,7 @@ def main(argv=None):
     report = dict(
         status="running",
         development_only=True,
+        state_check_only=args.state_check_only,
         diagnostics_only=args.diagnostics_only,
         seed=args.seed,
         max_hours=args.max_hours,
@@ -315,6 +334,11 @@ def main(argv=None):
         _run_panel(args, report, now + 3600 * args.max_hours)
         if args.diagnostics_only:
             report["status"] = "diagnostics-only"
+    except KeyboardInterrupt:
+        report.update(
+            status="interrupted", reason="Development run interrupted before completion"
+        )
+        raise
     except ResourceLimit as exc:
         report.update(status="requires-review", reason=str(exc))
     except Exception as exc:
