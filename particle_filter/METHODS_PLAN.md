@@ -1,6 +1,6 @@
 # Particle-filter methods and implementation plan
 
-**Plan approved on 25 November 2026. Implementation is on hold at the owner’s request.** Development measurements will determine the particle count and rollout count. Decision 12 fixes the protected evaluation at 300 independent roots.
+**Plan approved on 25 November 2026. Implementation and development-only validation may proceed.** Development measurements will determine the particle count and rollout count. Decision 12 fixes the protected evaluation at 300 independent roots.
 
 ## Approximate propagation and publisher memory
 
@@ -34,8 +34,8 @@ For fixed posteriors compare independent batches at K = 64, 128, 256, 512 and su
 
 ## Delivery and verification sequence
 
-1. When the owner releases the implementation hold, implement the development replay adapter and the deterministic transition, observation, resampling and deadline fixtures. Reuse frozen generator semantics. Verify public input allowlists, including future-tape isolation and first, lost and delayed readings.
+1. Implement the development replay adapter and the deterministic transition, observation, resampling and deadline fixtures. Reuse frozen generator semantics. Verify public input allowlists, including future-tape isolation and first, lost and delayed readings.
 2. Run development fits, closure checks, state diagnostics, calibration checks and numerical convergence. Freeze training provenance, fits, hyperparameters, bands, half-lives, ablation distribution, budgets, source tree, runtime, dependency versions and seed derivation. Use distinct named streams for the evaluator, filter, forecast pairs and scorer.
-3. Time the locked methods on the development panel and confirm feasibility of the approved 300-root budget under [Decision 12](EVALUATION_PLAN.md). Verify that all predictions for a root can be produced with evaluator-private access denied. Lock the inventory and analysis before generating protected outcomes.
+3. Time the locked methods on the development panel and confirm feasibility of the approved 300-root budget under [Decision 12](EVALUATION_PLAN.md). Verify that all predictions for a root can be produced with evaluator-private access denied. Lock the inventory and analysis. After development validation, method lock and runtime verification, obtain separate owner approval before generating or accessing protected roots.
 4. Run the frozen methods on ordinary fresh roots, preserving all outputs including negative results. Perform the regime-conditional work ablation and the two approved half-life sensitivities. Keep optional warm starts, simultaneous disturbances and post-cut switching outside the mandatory evaluation.
 5. For independent verification, regenerate primitive draws and endpoints, replay public histories at cutoff, reconstruct forecasts and loss differences from the manifests, and check all root counts, pairings, scores, intervals and figures. Archive evidence and independent findings before declaring the study complete. Report validity separately from the direction and precision of the scientific effect.

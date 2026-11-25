@@ -1,6 +1,6 @@
 # AIMS5701 · Particle-filter scientific specification
 
-**Scientific specification approved, 25 November 2026. Implementation is on hold at the owner’s request.** Decisions 1–10, revised Decision 11 and revised Decision 12 are approved. Independent reviewers rechecked the proposed methods and evaluation plans after their findings were resolved. Decision 12 fixes the evaluation at 300 fresh protected roots, 100 per condition, with development timing before the freeze. [Scientific review record](SPEC_REVIEW.md)
+**Scientific specification approved, 25 November 2026. Implementation and development-only validation may proceed.** Protected evaluation requires separate owner approval after development validation, method lock and runtime verification. Decisions 1–10, revised Decision 11 and revised Decision 12 are approved. Independent reviewers rechecked the proposed methods and evaluation plans after their findings were resolved. Decision 12 fixes the evaluation at 300 fresh protected roots, 100 per condition, with development timing before the freeze. [Scientific review record](SPEC_REVIEW.md)
 
 ## Primary model and scope
 
