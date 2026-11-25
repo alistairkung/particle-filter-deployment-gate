@@ -1,0 +1,2078 @@
+{
+  "model_digest": "939c4aefe02ea40581be4f552abf6dac2e462210b839893cbcd0237bb4e1e055",
+  "protocol_digest": "dea12d14ab5eac9346da44ac1956a4f634364a79a76e153b8351bcb2ecf65c25",
+  "fold": 3,
+  "training_roots": 960,
+  "heldout_roots": 240,
+  "training_digest": "e7fdcc0458a005d11dffb0a7312b388b30e279d3284eb7fcccfeca6c9f88d0f5",
+  "intervals": 2880,
+  "thresholds": {
+    "A": [
+      224.0,
+      22.0
+    ],
+    "B": [
+      240.0,
+      55.0
+    ],
+    "C": [
+      69.0,
+      835.1000000000001
+    ]
+  },
+  "smoothing_diagnostic": {
+    "zero_mass_without_smoothing": 0,
+    "mean_log_score_change_on_common_support": -0.00029171070314197085
+  },
+  "mean_joint_log_mass": -9.294747397058396,
+  "minimum_joint_log_mass": -70.82683294332371,
+  "seconds": 57.59938649996184,
+  "diagnostics": {
+    "A": {
+      "age_band_0": {
+        "observations": 1920,
+        "roots": 240,
+        "observed": 0.3458333333333333,
+        "predicted": 0.34585260416666663,
+        "error_ci95": [
+          -2.162468567533484e-05,
+          -1.7087535449142078e-05
+        ]
+      },
+      "age_band_1": {
+        "observations": 1920,
+        "roots": 240,
+        "observed": 0.13229166666666667,
+        "predicted": 0.13854230381874189,
+        "error_ci95": [
+          -0.019425077081361375,
+          0.0074413615707844835
+        ]
+      },
+      "age_band_2": {
+        "observations": 1920,
+        "roots": 240,
+        "observed": 0.17552083333333332,
+        "predicted": 0.17129920580154342,
+        "error_ci95": [
+          -0.011884524440706758,
+          0.020560765512673218
+        ]
+      },
+      "age_band_3": {
+        "observations": 1920,
+        "roots": 240,
+        "observed": 0.25625,
+        "predicted": 0.25256909195407373,
+        "error_ci95": [
+          -0.013357097871107948,
+          0.020863584295473466
+        ]
+      },
+      "age_band_4": {
+        "observations": 1920,
+        "roots": 240,
+        "observed": 0.0875,
+        "predicted": 0.08839969387103719,
+        "error_ci95": [
+          -0.011968260801198546,
+          0.010281319489280401
+        ]
+      },
+      "age_band_5": {
+        "observations": 1920,
+        "roots": 240,
+        "observed": 0.0026041666666666665,
+        "predicted": 0.0033371003879370718,
+        "error_ci95": [
+          -0.0026652736599085177,
+          0.0016875260916505161
+        ]
+      },
+      "age_band_6": {
+        "observations": 1920,
+        "roots": 240,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "age_band_7": {
+        "observations": 1920,
+        "roots": 240,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "age_band_8": {
+        "observations": 1920,
+        "roots": 240,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "backlog_tail": {
+        "observations": 1920,
+        "roots": 240,
+        "observed": 0.09583333333333334,
+        "predicted": 0.0649099968326373,
+        "error_ci95": [
+          0.017317704602555606,
+          0.0445658557275984
+        ]
+      },
+      "delay_band_0_given_age_0": {
+        "observations": 664,
+        "roots": 232,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_0_given_age_1": {
+        "observations": 254,
+        "roots": 158,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_0_given_age_2": {
+        "observations": 337,
+        "roots": 182,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_0_given_age_3": {
+        "observations": 492,
+        "roots": 209,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_0_given_age_4": {
+        "observations": 168,
+        "roots": 117,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_0_given_age_5": {
+        "observations": 5,
+        "roots": 5,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_1_given_age_0": {
+        "observations": 664,
+        "roots": 232,
+        "observed": 0.0783132530120482,
+        "predicted": 0.11018143523648276,
+        "error_ci95": [
+          -0.05190671454337708,
+          -0.010666201242450348
+        ]
+      },
+      "delay_band_1_given_age_1": {
+        "observations": 254,
+        "roots": 158,
+        "observed": 0.1141732283464567,
+        "predicted": 0.09134055416440731,
+        "error_ci95": [
+          -0.0131732354705669,
+          0.06518731747472228
+        ]
+      },
+      "delay_band_1_given_age_2": {
+        "observations": 337,
+        "roots": 182,
+        "observed": 0.08902077151335312,
+        "predicted": 0.07248103505043844,
+        "error_ci95": [
+          -0.01170412463819454,
+          0.04602427345026407
+        ]
+      },
+      "delay_band_1_given_age_3": {
+        "observations": 492,
+        "roots": 209,
+        "observed": 0.07520325203252033,
+        "predicted": 0.06207629872937681,
+        "error_ci95": [
+          -0.008224608996422423,
+          0.0356285467731575
+        ]
+      },
+      "delay_band_1_given_age_4": {
+        "observations": 168,
+        "roots": 117,
+        "observed": 0.05952380952380952,
+        "predicted": 0.059250850650001435,
+        "error_ci95": [
+          -0.033201353058846084,
+          0.0373857802701975
+        ]
+      },
+      "delay_band_1_given_age_5": {
+        "observations": 5,
+        "roots": 5,
+        "observed": 0.0,
+        "predicted": 0.1134044119590099,
+        "error_ci95": [
+          -0.17210573761538703,
+          -0.06984825415038191
+        ]
+      },
+      "delay_band_2_given_age_0": {
+        "observations": 664,
+        "roots": 232,
+        "observed": 0.6445783132530121,
+        "predicted": 0.6456604397452046,
+        "error_ci95": [
+          -0.03477895127529705,
+          0.030578581719493955
+        ]
+      },
+      "delay_band_2_given_age_1": {
+        "observations": 254,
+        "roots": 158,
+        "observed": 0.6259842519685039,
+        "predicted": 0.6275562622007165,
+        "error_ci95": [
+          -0.06858329482448111,
+          0.059667235026120376
+        ]
+      },
+      "delay_band_2_given_age_2": {
+        "observations": 337,
+        "roots": 182,
+        "observed": 0.6350148367952523,
+        "predicted": 0.6021012582195364,
+        "error_ci95": [
+          -0.020401073073089516,
+          0.08558743727578953
+        ]
+      },
+      "delay_band_2_given_age_3": {
+        "observations": 492,
+        "roots": 209,
+        "observed": 0.5995934959349594,
+        "predicted": 0.580024682969421,
+        "error_ci95": [
+          -0.020558390296301868,
+          0.05852898980984713
+        ]
+      },
+      "delay_band_2_given_age_4": {
+        "observations": 168,
+        "roots": 117,
+        "observed": 0.47619047619047616,
+        "predicted": 0.5622915455481986,
+        "error_ci95": [
+          -0.15507470208898097,
+          -0.016957782990637472
+        ]
+      },
+      "delay_band_2_given_age_5": {
+        "observations": 5,
+        "roots": 5,
+        "observed": 0.2,
+        "predicted": 0.666691295635007,
+        "error_ci95": [
+          -0.6919463357937834,
+          -0.007107146357483329
+        ]
+      },
+      "delay_band_3_given_age_0": {
+        "observations": 664,
+        "roots": 232,
+        "observed": 0.2575301204819277,
+        "predicted": 0.2179838071746716,
+        "error_ci95": [
+          0.011492116764366145,
+          0.07004215378344614
+        ]
+      },
+      "delay_band_3_given_age_1": {
+        "observations": 254,
+        "roots": 158,
+        "observed": 0.25196850393700787,
+        "predicted": 0.24977082410266888,
+        "error_ci95": [
+          -0.05513948727598124,
+          0.061954832235034764
+        ]
+      },
+      "delay_band_3_given_age_2": {
+        "observations": 337,
+        "roots": 182,
+        "observed": 0.24925816023738873,
+        "predicted": 0.2874560097356294,
+        "error_ci95": [
+          -0.08181205303098663,
+          0.005463830159588081
+        ]
+      },
+      "delay_band_3_given_age_3": {
+        "observations": 492,
+        "roots": 209,
+        "observed": 0.3048780487804878,
+        "predicted": 0.3139362921877953,
+        "error_ci95": [
+          -0.04656602901139357,
+          0.030211557042252014
+        ]
+      },
+      "delay_band_3_given_age_4": {
+        "observations": 168,
+        "roots": 117,
+        "observed": 0.35119047619047616,
+        "predicted": 0.3290110989398257,
+        "error_ci95": [
+          -0.05013693696480764,
+          0.09920998017658278
+        ]
+      },
+      "delay_band_3_given_age_5": {
+        "observations": 5,
+        "roots": 5,
+        "observed": 0.6,
+        "predicted": 0.20029938991902627,
+        "error_ci95": [
+          -0.24457900325713205,
+          0.8741303047384277
+        ]
+      },
+      "delay_band_4_given_age_0": {
+        "observations": 664,
+        "roots": 232,
+        "observed": 0.01957831325301205,
+        "predicted": 0.02493220320121979,
+        "error_ci95": [
+          -0.01426653895145555,
+          0.004988281251186292
+        ]
+      },
+      "delay_band_4_given_age_1": {
+        "observations": 254,
+        "roots": 158,
+        "observed": 0.007874015748031496,
+        "predicted": 0.029915852899050428,
+        "error_ci95": [
+          -0.03134613932288512,
+          -0.010140081110248477
+        ]
+      },
+      "delay_band_4_given_age_2": {
+        "observations": 337,
+        "roots": 182,
+        "observed": 0.026706231454005934,
+        "predicted": 0.036265949408699094,
+        "error_ci95": [
+          -0.025504629825944588,
+          0.008590754113032829
+        ]
+      },
+      "delay_band_4_given_age_3": {
+        "observations": 492,
+        "roots": 209,
+        "observed": 0.02032520325203252,
+        "predicted": 0.04199951381074021,
+        "error_ci95": [
+          -0.031908558280447745,
+          -0.00973354174460277
+        ]
+      },
+      "delay_band_4_given_age_4": {
+        "observations": 168,
+        "roots": 117,
+        "observed": 0.1130952380952381,
+        "predicted": 0.04724705560309631,
+        "error_ci95": [
+          0.020623582574787327,
+          0.1149798604364528
+        ]
+      },
+      "delay_band_4_given_age_5": {
+        "observations": 5,
+        "roots": 5,
+        "observed": 0.2,
+        "predicted": 0.018682637893837582,
+        "error_ci95": [
+          -0.02305118105552771,
+          0.646782638776749
+        ]
+      },
+      "delay_band_5_given_age_0": {
+        "observations": 664,
+        "roots": 232,
+        "observed": 0.0,
+        "predicted": 0.0012421146424211537,
+        "error_ci95": [
+          -0.0014347534460409732,
+          -0.0011090364000902538
+        ]
+      },
+      "delay_band_5_given_age_1": {
+        "observations": 254,
+        "roots": 158,
+        "observed": 0.0,
+        "predicted": 0.0014165066331568543,
+        "error_ci95": [
+          -0.0015910419819715714,
+          -0.0012577289901158765
+        ]
+      },
+      "delay_band_5_given_age_2": {
+        "observations": 337,
+        "roots": 182,
+        "observed": 0.0,
+        "predicted": 0.0016957475856966204,
+        "error_ci95": [
+          -0.0019143566105988663,
+          -0.0015140648176268441
+        ]
+      },
+      "delay_band_5_given_age_3": {
+        "observations": 492,
+        "roots": 209,
+        "observed": 0.0,
+        "predicted": 0.0019632123026665236,
+        "error_ci95": [
+          -0.00215154298802411,
+          -0.0017945708883115538
+        ]
+      },
+      "delay_band_5_given_age_4": {
+        "observations": 168,
+        "roots": 117,
+        "observed": 0.0,
+        "predicted": 0.002199449258877896,
+        "error_ci95": [
+          -0.002539664051494071,
+          -0.0018689702231737063
+        ]
+      },
+      "delay_band_5_given_age_5": {
+        "observations": 5,
+        "roots": 5,
+        "observed": 0.0,
+        "predicted": 0.0009222645931192895,
+        "error_ci95": [
+          -0.0012032417468816707,
+          -0.0005958950877100533
+        ]
+      },
+      "delay_band_6_given_age_0": {
+        "observations": 664,
+        "roots": 232,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_6_given_age_1": {
+        "observations": 254,
+        "roots": 158,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_6_given_age_2": {
+        "observations": 337,
+        "roots": 182,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_6_given_age_3": {
+        "observations": 492,
+        "roots": 209,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_6_given_age_4": {
+        "observations": 168,
+        "roots": 117,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_6_given_age_5": {
+        "observations": 5,
+        "roots": 5,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_7_given_age_0": {
+        "observations": 664,
+        "roots": 232,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_7_given_age_1": {
+        "observations": 254,
+        "roots": 158,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_7_given_age_2": {
+        "observations": 337,
+        "roots": 182,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_7_given_age_3": {
+        "observations": 492,
+        "roots": 209,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_7_given_age_4": {
+        "observations": 168,
+        "roots": 117,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_7_given_age_5": {
+        "observations": 5,
+        "roots": 5,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_8_given_age_0": {
+        "observations": 664,
+        "roots": 232,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_8_given_age_1": {
+        "observations": 254,
+        "roots": 158,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_8_given_age_2": {
+        "observations": 337,
+        "roots": 182,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_8_given_age_3": {
+        "observations": 492,
+        "roots": 209,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_8_given_age_4": {
+        "observations": 168,
+        "roots": 117,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_8_given_age_5": {
+        "observations": 5,
+        "roots": 5,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "empty": {
+        "observations": 1920,
+        "roots": 240,
+        "observed": 0.3458333333333333,
+        "predicted": 0.3415955403902873,
+        "error_ci95": [
+          -0.014340191179524949,
+          0.02132356302372187
+        ]
+      },
+      "mark_pit": {
+        "observations": 1920,
+        "roots": 240,
+        "observed": 0.49270596356703816,
+        "predicted": 0.5,
+        "error_ci95": [
+          -0.016190166828138362,
+          0.002207720150679049
+        ]
+      },
+      "mark_pit_lag1": {
+        "observations": 1680,
+        "roots": 240,
+        "observed": -0.0148077984712074,
+        "predicted": 0.0,
+        "error_ci95": [
+          -0.01872693098635118,
+          -0.010968190108847977
+        ]
+      },
+      "mark_tail": {
+        "observations": 1920,
+        "roots": 240,
+        "observed": 0.09479166666666666,
+        "predicted": 0.11646034441017838,
+        "error_ci95": [
+          -0.03404473225450825,
+          -0.008808573446984958
+        ]
+      },
+      "pending_pit": {
+        "observations": 1920,
+        "roots": 240,
+        "observed": 0.4841485856133679,
+        "predicted": 0.5,
+        "error_ci95": [
+          -0.02791691466012322,
+          -0.003622504830670323
+        ]
+      },
+      "pending_pit_lag1": {
+        "observations": 1680,
+        "roots": 240,
+        "observed": -0.002701702249262379,
+        "predicted": 0.0,
+        "error_ci95": [
+          -0.00677224432387261,
+          0.00134748657972485
+        ]
+      },
+      "upper_joint_tail": {
+        "observations": 1920,
+        "roots": 240,
+        "observed": 0.0005208333333333333,
+        "predicted": 0.0005391836101237268,
+        "error_ci95": [
+          -0.0005719410763312937,
+          0.0010536614333553139
+        ]
+      }
+    },
+    "B": {
+      "age_band_0": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.22291666666666668,
+        "predicted": 0.22292986111111113,
+        "error_ci95": [
+          -1.70138888888915e-05,
+          -9.375000000001771e-06
+        ]
+      },
+      "age_band_1": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.08125,
+        "predicted": 0.0690167384311455,
+        "error_ci95": [
+          -0.00952258130058429,
+          0.036121821352003654
+        ]
+      },
+      "age_band_2": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.125,
+        "predicted": 0.12064234501327066,
+        "error_ci95": [
+          -0.023334367579260343,
+          0.032030539856223054
+        ]
+      },
+      "age_band_3": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.25416666666666665,
+        "predicted": 0.3121191118930215,
+        "error_ci95": [
+          -0.08928895458321538,
+          -0.0253386519812723
+        ]
+      },
+      "age_band_4": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.2604166666666667,
+        "predicted": 0.24212892818874204,
+        "error_ci95": [
+          -0.012044412899705198,
+          0.048129499052929625
+        ]
+      },
+      "age_band_5": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.052083333333333336,
+        "predicted": 0.028996348696042486,
+        "error_ci95": [
+          0.004735334860765485,
+          0.042756941021369975
+        ]
+      },
+      "age_band_6": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.004166666666666667,
+        "predicted": 0.004166666666666667,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "age_band_7": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "age_band_8": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "backlog_tail": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.11666666666666667,
+        "predicted": 0.08732659961314702,
+        "error_ci95": [
+          0.0014568746302157623,
+          0.05863631586426706
+        ]
+      },
+      "delay_band_0_given_age_0": {
+        "observations": 107,
+        "roots": 61,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_0_given_age_1": {
+        "observations": 39,
+        "roots": 31,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_0_given_age_2": {
+        "observations": 60,
+        "roots": 45,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_0_given_age_3": {
+        "observations": 122,
+        "roots": 69,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_0_given_age_4": {
+        "observations": 125,
+        "roots": 68,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_0_given_age_5": {
+        "observations": 25,
+        "roots": 19,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_0_given_age_6": {
+        "observations": 2,
+        "roots": 2,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_1_given_age_0": {
+        "observations": 107,
+        "roots": 61,
+        "observed": 0.0,
+        "predicted": 0.023935004507412448,
+        "error_ci95": [
+          -0.026964442449714004,
+          -0.020764335750992863
+        ]
+      },
+      "delay_band_1_given_age_1": {
+        "observations": 39,
+        "roots": 31,
+        "observed": 0.0,
+        "predicted": 0.01663810048362414,
+        "error_ci95": [
+          -0.02095587842167045,
+          -0.012556864381887217
+        ]
+      },
+      "delay_band_1_given_age_2": {
+        "observations": 60,
+        "roots": 45,
+        "observed": 0.016666666666666666,
+        "predicted": 0.01553306833184378,
+        "error_ci95": [
+          -0.017356587587674294,
+          0.037678626245333004
+        ]
+      },
+      "delay_band_1_given_age_3": {
+        "observations": 122,
+        "roots": 69,
+        "observed": 0.0,
+        "predicted": 0.012804876762838358,
+        "error_ci95": [
+          -0.014608009464448561,
+          -0.0111597484614075
+        ]
+      },
+      "delay_band_1_given_age_4": {
+        "observations": 125,
+        "roots": 68,
+        "observed": 0.008,
+        "predicted": 0.014760501469245341,
+        "error_ci95": [
+          -0.016045508509412026,
+          0.01184487852735198
+        ]
+      },
+      "delay_band_1_given_age_5": {
+        "observations": 25,
+        "roots": 19,
+        "observed": 0.0,
+        "predicted": 0.025474308583778738,
+        "error_ci95": [
+          -0.04061482672947267,
+          -0.014448859725866599
+        ]
+      },
+      "delay_band_1_given_age_6": {
+        "observations": 2,
+        "roots": 2,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_2_given_age_0": {
+        "observations": 107,
+        "roots": 61,
+        "observed": 0.3644859813084112,
+        "predicted": 0.3660908846409559,
+        "error_ci95": [
+          -0.07843868508174526,
+          0.0858043613094947
+        ]
+      },
+      "delay_band_2_given_age_1": {
+        "observations": 39,
+        "roots": 31,
+        "observed": 0.358974358974359,
+        "predicted": 0.28919061580656164,
+        "error_ci95": [
+          -0.040513635262131045,
+          0.18708272969318956
+        ]
+      },
+      "delay_band_2_given_age_2": {
+        "observations": 60,
+        "roots": 45,
+        "observed": 0.2833333333333333,
+        "predicted": 0.28890896219334306,
+        "error_ci95": [
+          -0.11317591537567799,
+          0.10419725094445215
+        ]
+      },
+      "delay_band_2_given_age_3": {
+        "observations": 122,
+        "roots": 69,
+        "observed": 0.36065573770491804,
+        "predicted": 0.25446630994572705,
+        "error_ci95": [
+          0.02175256061143305,
+          0.19492683384002737
+        ]
+      },
+      "delay_band_2_given_age_4": {
+        "observations": 125,
+        "roots": 68,
+        "observed": 0.232,
+        "predicted": 0.270764731501731,
+        "error_ci95": [
+          -0.10489377521011481,
+          0.03405225832004496
+        ]
+      },
+      "delay_band_2_given_age_5": {
+        "observations": 25,
+        "roots": 19,
+        "observed": 0.16,
+        "predicted": 0.29756817291948123,
+        "error_ci95": [
+          -0.27512440947155925,
+          0.011918209997688353
+        ]
+      },
+      "delay_band_2_given_age_6": {
+        "observations": 2,
+        "roots": 2,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_3_given_age_0": {
+        "observations": 107,
+        "roots": 61,
+        "observed": 0.514018691588785,
+        "predicted": 0.4633994877528721,
+        "error_ci95": [
+          -0.039289525616067175,
+          0.13964996131003202
+        ]
+      },
+      "delay_band_3_given_age_1": {
+        "observations": 39,
+        "roots": 31,
+        "observed": 0.41025641025641024,
+        "predicted": 0.4723109287664552,
+        "error_ci95": [
+          -0.18606334603167693,
+          0.07180761479395935
+        ]
+      },
+      "delay_band_3_given_age_2": {
+        "observations": 60,
+        "roots": 45,
+        "observed": 0.6,
+        "predicted": 0.5067783808701032,
+        "error_ci95": [
+          -0.027809569009578584,
+          0.21907064692711753
+        ]
+      },
+      "delay_band_3_given_age_3": {
+        "observations": 122,
+        "roots": 69,
+        "observed": 0.5081967213114754,
+        "predicted": 0.516346892065765,
+        "error_ci95": [
+          -0.10227989410016819,
+          0.0833620409225925
+        ]
+      },
+      "delay_band_3_given_age_4": {
+        "observations": 125,
+        "roots": 68,
+        "observed": 0.44,
+        "predicted": 0.4886641783110764,
+        "error_ci95": [
+          -0.1480986671368515,
+          0.044737852524822964
+        ]
+      },
+      "delay_band_3_given_age_5": {
+        "observations": 25,
+        "roots": 19,
+        "observed": 0.16,
+        "predicted": 0.38429751393315215,
+        "error_ci95": [
+          -0.3713734034150263,
+          -0.06656273708336895
+        ]
+      },
+      "delay_band_3_given_age_6": {
+        "observations": 2,
+        "roots": 2,
+        "observed": 0.0,
+        "predicted": 0.4092034158787379,
+        "error_ci95": [
+          -0.8184068317574758,
+          0.0
+        ]
+      },
+      "delay_band_4_given_age_0": {
+        "observations": 107,
+        "roots": 61,
+        "observed": 0.11214953271028037,
+        "predicted": 0.13736717409193433,
+        "error_ci95": [
+          -0.07221612931356639,
+          0.024939415090241206
+        ]
+      },
+      "delay_band_4_given_age_1": {
+        "observations": 39,
+        "roots": 31,
+        "observed": 0.20512820512820512,
+        "predicted": 0.20188852665157106,
+        "error_ci95": [
+          -0.10092416640020577,
+          0.11534321190107023
+        ]
+      },
+      "delay_band_4_given_age_2": {
+        "observations": 60,
+        "roots": 45,
+        "observed": 0.1,
+        "predicted": 0.17821926139462335,
+        "error_ci95": [
+          -0.14918410688372286,
+          0.009126143278638912
+        ]
+      },
+      "delay_band_4_given_age_3": {
+        "observations": 122,
+        "roots": 69,
+        "observed": 0.12295081967213115,
+        "predicted": 0.20066218570955452,
+        "error_ci95": [
+          -0.13919219504755484,
+          -0.011240923354038907
+        ]
+      },
+      "delay_band_4_given_age_4": {
+        "observations": 125,
+        "roots": 68,
+        "observed": 0.288,
+        "predicted": 0.2070284504986284,
+        "error_ci95": [
+          0.00958920766850429,
+          0.15854534819480934
+        ]
+      },
+      "delay_band_4_given_age_5": {
+        "observations": 25,
+        "roots": 19,
+        "observed": 0.2,
+        "predicted": 0.21238075592898223,
+        "error_ci95": [
+          -0.17718404945675506,
+          0.188103759182339
+        ]
+      },
+      "delay_band_4_given_age_6": {
+        "observations": 2,
+        "roots": 2,
+        "observed": 0.0,
+        "predicted": 0.5587518993603305,
+        "error_ci95": [
+          -0.9468513227468192,
+          -0.1706524759738419
+        ]
+      },
+      "delay_band_5_given_age_0": {
+        "observations": 107,
+        "roots": 61,
+        "observed": 0.009345794392523364,
+        "predicted": 0.009207449006825123,
+        "error_ci95": [
+          -0.00872525800214012,
+          0.017337122997645255
+        ]
+      },
+      "delay_band_5_given_age_1": {
+        "observations": 39,
+        "roots": 31,
+        "observed": 0.02564102564102564,
+        "predicted": 0.019971828291787876,
+        "error_ci95": [
+          -0.02550092377394486,
+          0.06054420184796191
+        ]
+      },
+      "delay_band_5_given_age_2": {
+        "observations": 60,
+        "roots": 45,
+        "observed": 0.0,
+        "predicted": 0.010560327210086583,
+        "error_ci95": [
+          -0.013606351720793967,
+          -0.007910154447391567
+        ]
+      },
+      "delay_band_5_given_age_3": {
+        "observations": 122,
+        "roots": 69,
+        "observed": 0.00819672131147541,
+        "predicted": 0.015719735516115,
+        "error_ci95": [
+          -0.018043216291910188,
+          0.007903104055602638
+        ]
+      },
+      "delay_band_5_given_age_4": {
+        "observations": 125,
+        "roots": 68,
+        "observed": 0.032,
+        "predicted": 0.01878213821931881,
+        "error_ci95": [
+          -0.011436636024278003,
+          0.04462472238359918
+        ]
+      },
+      "delay_band_5_given_age_5": {
+        "observations": 25,
+        "roots": 19,
+        "observed": 0.48,
+        "predicted": 0.04298911733406407,
+        "error_ci95": [
+          0.2592007751351456,
+          0.599170272611781
+        ]
+      },
+      "delay_band_5_given_age_6": {
+        "observations": 2,
+        "roots": 2,
+        "observed": 1.0,
+        "predicted": 0.02259783715625731,
+        "error_ci95": [
+          0.9624469071931732,
+          0.9923574184943122
+        ]
+      },
+      "delay_band_6_given_age_0": {
+        "observations": 107,
+        "roots": 61,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_6_given_age_1": {
+        "observations": 39,
+        "roots": 31,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_6_given_age_2": {
+        "observations": 60,
+        "roots": 45,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_6_given_age_3": {
+        "observations": 122,
+        "roots": 69,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_6_given_age_4": {
+        "observations": 125,
+        "roots": 68,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_6_given_age_5": {
+        "observations": 25,
+        "roots": 19,
+        "observed": 0.0,
+        "predicted": 0.03613756466755958,
+        "error_ci95": [
+          -0.0823931213510809,
+          -0.005309347700836526
+        ]
+      },
+      "delay_band_6_given_age_6": {
+        "observations": 2,
+        "roots": 2,
+        "observed": 0.0,
+        "predicted": 0.009446847604674187,
+        "error_ci95": [
+          -0.015595584446353849,
+          -0.003298110762994525
+        ]
+      },
+      "delay_band_7_given_age_0": {
+        "observations": 107,
+        "roots": 61,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_7_given_age_1": {
+        "observations": 39,
+        "roots": 31,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_7_given_age_2": {
+        "observations": 60,
+        "roots": 45,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_7_given_age_3": {
+        "observations": 122,
+        "roots": 69,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_7_given_age_4": {
+        "observations": 125,
+        "roots": 68,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_7_given_age_5": {
+        "observations": 25,
+        "roots": 19,
+        "observed": 0.0,
+        "predicted": 0.0011525666329819631,
+        "error_ci95": [
+          -0.003893806192506632,
+          0.0
+        ]
+      },
+      "delay_band_7_given_age_6": {
+        "observations": 2,
+        "roots": 2,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_8_given_age_0": {
+        "observations": 107,
+        "roots": 61,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_8_given_age_1": {
+        "observations": 39,
+        "roots": 31,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_8_given_age_2": {
+        "observations": 60,
+        "roots": 45,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_8_given_age_3": {
+        "observations": 122,
+        "roots": 69,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_8_given_age_4": {
+        "observations": 125,
+        "roots": 68,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_8_given_age_5": {
+        "observations": 25,
+        "roots": 19,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_8_given_age_6": {
+        "observations": 2,
+        "roots": 2,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "empty": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.22291666666666668,
+        "predicted": 0.21652884530920236,
+        "error_ci95": [
+          -0.02597656646687652,
+          0.040572890261666675
+        ]
+      },
+      "mark_pit": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.4920553402706931,
+        "predicted": 0.5,
+        "error_ci95": [
+          -0.021056777994810136,
+          0.005145614443510393
+        ]
+      },
+      "mark_pit_lag1": {
+        "observations": 400,
+        "roots": 80,
+        "observed": -0.027767130279170087,
+        "predicted": 0.0,
+        "error_ci95": [
+          -0.03485267484804783,
+          -0.02118982161688609
+        ]
+      },
+      "mark_tail": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.09791666666666667,
+        "predicted": 0.1245842007332896,
+        "error_ci95": [
+          -0.05346900195247776,
+          0.0001090773265696015
+        ]
+      },
+      "pending_pit": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.48203999919547263,
+        "predicted": 0.5,
+        "error_ci95": [
+          -0.048676811990144536,
+          0.012628625231794288
+        ]
+      },
+      "pending_pit_lag1": {
+        "observations": 400,
+        "roots": 80,
+        "observed": 0.009478257382768125,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.00043194368265454407,
+          0.018721151438795654
+        ]
+      },
+      "upper_joint_tail": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.0125,
+        "predicted": 4.949863372239066e-05,
+        "error_ci95": [
+          0.0020513019946373644,
+          0.024931872517061096
+        ]
+      }
+    },
+    "C": {
+      "age_band_0": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "age_band_1": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "age_band_2": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "age_band_3": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 5.416852232443912e-05,
+        "error_ci95": [
+          -5.5557458826563586e-05,
+          -5.2085117597944586e-05
+        ]
+      },
+      "age_band_4": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 5.425148150019788e-05,
+        "error_ci95": [
+          -5.564254660320771e-05,
+          -5.2164885065676514e-05
+        ]
+      },
+      "age_band_5": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.1625,
+        "predicted": 0.16239157999617534,
+        "error_ci95": [
+          0.00010425000266363148,
+          0.00011120000542977763
+        ]
+      },
+      "age_band_6": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.19583333333333333,
+        "predicted": 0.191474414322133,
+        "error_ci95": [
+          -0.007623886597830594,
+          0.01833066183386209
+        ]
+      },
+      "age_band_7": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.47708333333333336,
+        "predicted": 0.4924419330709323,
+        "error_ci95": [
+          -0.0314593392484782,
+          -8.6928241936965e-05
+        ]
+      },
+      "age_band_8": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.16458333333333333,
+        "predicted": 0.15358365260693466,
+        "error_ci95": [
+          0.0014387045329869398,
+          0.019995319052726408
+        ]
+      },
+      "backlog_tail": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.12708333333333333,
+        "predicted": 0.1658682458913523,
+        "error_ci95": [
+          -0.053245577888369776,
+          -0.02524204284887659
+        ]
+      },
+      "delay_band_0_given_age_5": {
+        "observations": 78,
+        "roots": 78,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_0_given_age_6": {
+        "observations": 94,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_0_given_age_7": {
+        "observations": 229,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_0_given_age_8": {
+        "observations": 79,
+        "roots": 79,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_1_given_age_5": {
+        "observations": 78,
+        "roots": 78,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_1_given_age_6": {
+        "observations": 94,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_1_given_age_7": {
+        "observations": 229,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_1_given_age_8": {
+        "observations": 79,
+        "roots": 79,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_2_given_age_5": {
+        "observations": 78,
+        "roots": 78,
+        "observed": 0.0,
+        "predicted": 0.0014916136537884927,
+        "error_ci95": [
+          -0.001971548727029401,
+          -0.0010162289271900815
+        ]
+      },
+      "delay_band_2_given_age_6": {
+        "observations": 94,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_2_given_age_7": {
+        "observations": 229,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_2_given_age_8": {
+        "observations": 79,
+        "roots": 79,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_3_given_age_5": {
+        "observations": 78,
+        "roots": 78,
+        "observed": 0.0,
+        "predicted": 0.04056364560677239,
+        "error_ci95": [
+          -0.04619239622701803,
+          -0.03515606189242485
+        ]
+      },
+      "delay_band_3_given_age_6": {
+        "observations": 94,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_3_given_age_7": {
+        "observations": 229,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_3_given_age_8": {
+        "observations": 79,
+        "roots": 79,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_4_given_age_5": {
+        "observations": 78,
+        "roots": 78,
+        "observed": 0.6538461538461539,
+        "predicted": 0.5330711262237532,
+        "error_ci95": [
+          0.028513601386799738,
+          0.21708722739837671
+        ]
+      },
+      "delay_band_4_given_age_6": {
+        "observations": 94,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 0.0062539340273143115,
+        "error_ci95": [
+          -0.01741151096039211,
+          0.0
+        ]
+      },
+      "delay_band_4_given_age_7": {
+        "observations": 229,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_4_given_age_8": {
+        "observations": 79,
+        "roots": 79,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_5_given_age_5": {
+        "observations": 78,
+        "roots": 78,
+        "observed": 0.34615384615384615,
+        "predicted": 0.4248736145156859,
+        "error_ci95": [
+          -0.17444512772063756,
+          0.012545168766550112
+        ]
+      },
+      "delay_band_5_given_age_6": {
+        "observations": 94,
+        "roots": 80,
+        "observed": 0.1702127659574468,
+        "predicted": 0.19848232163192114,
+        "error_ci95": [
+          -0.10082791982368909,
+          0.045809592435409455
+        ]
+      },
+      "delay_band_5_given_age_7": {
+        "observations": 229,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_5_given_age_8": {
+        "observations": 79,
+        "roots": 79,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_6_given_age_5": {
+        "observations": 78,
+        "roots": 78,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_6_given_age_6": {
+        "observations": 94,
+        "roots": 80,
+        "observed": 0.8297872340425532,
+        "predicted": 0.7922043678571113,
+        "error_ci95": [
+          -0.035117543755404414,
+          0.10992712502623338
+        ]
+      },
+      "delay_band_6_given_age_7": {
+        "observations": 229,
+        "roots": 80,
+        "observed": 0.2576419213973799,
+        "predicted": 0.2628602755294157,
+        "error_ci95": [
+          -0.036866601251957266,
+          0.023303824511130646
+        ]
+      },
+      "delay_band_6_given_age_8": {
+        "observations": 79,
+        "roots": 79,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_7_given_age_5": {
+        "observations": 78,
+        "roots": 78,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_7_given_age_6": {
+        "observations": 94,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 0.003059376483653168,
+        "error_ci95": [
+          -0.00787111653416859,
+          0.0
+        ]
+      },
+      "delay_band_7_given_age_7": {
+        "observations": 229,
+        "roots": 80,
+        "observed": 0.74235807860262,
+        "predicted": 0.7371397244705844,
+        "error_ci95": [
+          -0.02330382451113064,
+          0.03686660125195729
+        ]
+      },
+      "delay_band_7_given_age_8": {
+        "observations": 79,
+        "roots": 79,
+        "observed": 0.6962025316455697,
+        "predicted": 0.7352887734506868,
+        "error_ci95": [
+          -0.1391874956612741,
+          0.057094278949513376
+        ]
+      },
+      "delay_band_8_given_age_5": {
+        "observations": 78,
+        "roots": 78,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_8_given_age_6": {
+        "observations": 94,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_8_given_age_7": {
+        "observations": 229,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "delay_band_8_given_age_8": {
+        "observations": 79,
+        "roots": 79,
+        "observed": 0.3037974683544304,
+        "predicted": 0.2647112265493131,
+        "error_ci95": [
+          -0.057094278949513376,
+          0.13918749566127414
+        ]
+      },
+      "empty": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.0,
+        "predicted": 2.4948630881286442e-08,
+        "error_ci95": [
+          -2.8264262259212303e-08,
+          -2.1804641056267165e-08
+        ]
+      },
+      "mark_pit": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.48244446020540693,
+        "predicted": 0.5,
+        "error_ci95": [
+          -0.04246850832163045,
+          0.008188060934165974
+        ]
+      },
+      "mark_pit_lag1": {
+        "observations": 400,
+        "roots": 80,
+        "observed": 0.002847759462898839,
+        "predicted": 0.0,
+        "error_ci95": [
+          -0.006714352125506669,
+          0.012220474510888587
+        ]
+      },
+      "mark_tail": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.07083333333333333,
+        "predicted": 0.09939690208098151,
+        "error_ci95": [
+          -0.048572424952165655,
+          -0.007283217862997149
+        ]
+      },
+      "pending_pit": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.5914011195673995,
+        "predicted": 0.5,
+        "error_ci95": [
+          0.08206641205038966,
+          0.10074500646013189
+        ]
+      },
+      "pending_pit_lag1": {
+        "observations": 400,
+        "roots": 80,
+        "observed": 0.010977460349977904,
+        "predicted": 0.0,
+        "error_ci95": [
+          0.009054928454520151,
+          0.012871992400468076
+        ]
+      },
+      "upper_joint_tail": {
+        "observations": 480,
+        "roots": 80,
+        "observed": 0.004166666666666667,
+        "predicted": 0.011634279647311684,
+        "error_ci95": [
+          -0.01199023160996065,
+          -0.0008885270750284604
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,195 @@
+{
+  "model_digest": "939c4aefe02ea40581be4f552abf6dac2e462210b839893cbcd0237bb4e1e055",
+  "protocol_digest": "dea12d14ab5eac9346da44ac1956a4f634364a79a76e153b8351bcb2ecf65c25",
+  "kind": "held-out teacher-forced development diagnostics",
+  "roots": 1200,
+  "intervals": 14400,
+  "folds": 5,
+  "fold_evidence": {
+    "0": "5d2bb9b0859b3517686d0c4e5bd5ac77ec8ecc6bff99a6e609281932fb7b030d",
+    "1": "02a0c2feabb9ff39686ca4048fd6ca1f8a7b38bde9ce90b609c5ec69bbc2786b",
+    "2": "0f29e54645404b52c0c6f184bb429dce17fa2e072d4f2d4eaf056b727528feba",
+    "3": "9bee1e74239511df95d88414c59a39d4e98bc848e0e3456ac282630385db4e34",
+    "4": "db593c026cb7191ce8d00220a6e6d64072b7c6ac5b6f1d46e0be5c361e17ade3"
+  },
+  "bootstrap_resamples": 2000,
+  "seconds": 115.5234546251595,
+  "gate": "investigate",
+  "repeatable_discrepancies": [
+    {
+      "regime": "A",
+      "quantity": "delay_band_1_given_age_5",
+      "direction": "overprediction",
+      "folds": [
+        0,
+        1,
+        3,
+        4
+      ]
+    },
+    {
+      "regime": "A",
+      "quantity": "delay_band_2_given_age_4",
+      "direction": "overprediction",
+      "folds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "regime": "A",
+      "quantity": "delay_band_2_given_age_5",
+      "direction": "overprediction",
+      "folds": [
+        1,
+        3
+      ]
+    },
+    {
+      "regime": "A",
+      "quantity": "delay_band_4_given_age_4",
+      "direction": "underprediction",
+      "folds": [
+        1,
+        3,
+        4
+      ]
+    },
+    {
+      "regime": "A",
+      "quantity": "mark_pit_lag1",
+      "direction": "negative",
+      "folds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "regime": "B",
+      "quantity": "delay_band_2_given_age_2",
+      "direction": "underprediction",
+      "folds": [
+        0,
+        2
+      ]
+    },
+    {
+      "regime": "B",
+      "quantity": "delay_band_2_given_age_3",
+      "direction": "underprediction",
+      "folds": [
+        1,
+        3,
+        4
+      ]
+    },
+    {
+      "regime": "B",
+      "quantity": "delay_band_2_given_age_5",
+      "direction": "overprediction",
+      "folds": [
+        0,
+        1,
+        4
+      ]
+    },
+    {
+      "regime": "B",
+      "quantity": "delay_band_3_given_age_4",
+      "direction": "overprediction",
+      "folds": [
+        0,
+        1
+      ]
+    },
+    {
+      "regime": "B",
+      "quantity": "delay_band_3_given_age_5",
+      "direction": "overprediction",
+      "folds": [
+        3,
+        4
+      ]
+    },
+    {
+      "regime": "B",
+      "quantity": "delay_band_4_given_age_4",
+      "direction": "underprediction",
+      "folds": [
+        0,
+        1,
+        3,
+        4
+      ]
+    },
+    {
+      "regime": "B",
+      "quantity": "delay_band_5_given_age_5",
+      "direction": "underprediction",
+      "folds": [
+        0,
+        1,
+        3,
+        4
+      ]
+    },
+    {
+      "regime": "B",
+      "quantity": "mark_pit_lag1",
+      "direction": "negative",
+      "folds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "regime": "B",
+      "quantity": "pending_pit_lag1",
+      "direction": "positive",
+      "folds": [
+        3,
+        4
+      ]
+    },
+    {
+      "regime": "C",
+      "quantity": "backlog_tail",
+      "direction": "overprediction",
+      "folds": [
+        0,
+        1,
+        4
+      ]
+    },
+    {
+      "regime": "C",
+      "quantity": "delay_band_4_given_age_5",
+      "direction": "underprediction",
+      "folds": [
+        1,
+        3
+      ]
+    },
+    {
+      "regime": "C",
+      "quantity": "pending_pit_lag1",
+      "direction": "positive",
+      "folds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  ]
+}

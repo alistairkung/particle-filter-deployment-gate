@@ -1,0 +1,3 @@
+name = "half-life-60"
+half_life_seconds = 60
+cut_work = "posterior"
