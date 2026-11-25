@@ -66,7 +66,7 @@ def test_missing_first_reading_preserves_prior_and_generates_no_evidence():
 
 
 def test_all_four_paired_cells_keep_a_negative_promotion_increment():
-    from particle_filter.inference import Forecast
+    from particle_filter.forecast import Forecast
 
     result = Forecast(hold_only=4, promote_only=1, both=3, neither=2, fallbacks=0)
     assert (result.hold, result.promote, result.delta) == pytest.approx(
@@ -75,7 +75,8 @@ def test_all_four_paired_cells_keep_a_negative_promotion_increment():
 
 
 def test_matched_forecast_reuses_draws_when_ablated_work_is_identical():
-    from particle_filter.inference import Posterior, forecast
+    from particle_filter.inference import Posterior
+    from particle_filter.forecast import forecast
     from particle_filter.physical import Boundary, Closure
 
     posterior = Posterior(0, ("A",), (Boundary(),), (1.0,), None, ())
@@ -141,7 +142,8 @@ def test_delayed_reading_updates_its_resampled_ancestor_once():
 
 def test_common_public_history_gives_identical_posteriors_and_action_forecasts():
     from dataclasses import replace
-    from particle_filter.inference import infer, forecast
+    from particle_filter.inference import infer
+    from particle_filter.forecast import forecast
     from particle_filter.physical import Closure
     from simulator.observations import START, INTERVAL, Reading
 
