@@ -1,0 +1,22 @@
+{
+  "release": {
+    "ack_ns": 53000000,
+    "claim_ns": 3000000,
+    "intervening_commit_ns": 9000000,
+    "mark_ns": 54000000,
+    "passed": true
+  },
+  "replay": {
+    "active_query_residual_ns": 9500000,
+    "cut_digest": "8b74746768e1b8747cbdb98f7f5f6ee5c33f408b78d7f2e250c9668408864a0d",
+    "cut_phase": "ack",
+    "inherited_ack_due_ns": 1000000,
+    "outstanding_write": true,
+    "passed": true,
+    "pending_ids": [
+      -2
+    ],
+    "replay_end": "cfb406610db44c6111346876d4d1423d8bcc3d3a4ff59a6f19b945c53d2db5f6",
+    "uninterrupted_end": "cfb406610db44c6111346876d4d1423d8bcc3d3a4ff59a6f19b945c53d2db5f6"
+  }
+}

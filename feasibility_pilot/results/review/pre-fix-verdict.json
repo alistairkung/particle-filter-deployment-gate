@@ -1,0 +1,149 @@
+{
+  "interaction": {
+    "estimate": -0.2175,
+    "lower": -0.285,
+    "upper": -0.15
+  },
+  "migration": {
+    "high": {
+      "both": 329,
+      "estimate": 0.1725,
+      "hold_only": 0,
+      "lower": 0.12124082403988658,
+      "n": 400,
+      "neither": 2,
+      "promote_only": 69,
+      "upper": 0.2191020342357477
+    },
+    "ref": {
+      "both": 63,
+      "estimate": 0.39,
+      "hold_only": 0,
+      "lower": 0.3244428117731327,
+      "n": 400,
+      "neither": 181,
+      "promote_only": 156,
+      "upper": 0.4467399259255577
+    }
+  },
+  "migration_finding": "consequential",
+  "overload": {
+    "both": 400,
+    "estimate": 0.0,
+    "hold_only": 0,
+    "lower": 0.0,
+    "n": 400,
+    "neither": 0,
+    "promote_only": 0,
+    "upper": 0.0
+  },
+  "publisher": {
+    "absolute": {
+      "nominal": {
+        "lower": 0.0,
+        "upper": 0.007461355528799603
+      },
+      "slow": {
+        "lower": 0.0,
+        "upper": 0.007461355528799603
+      }
+    },
+    "age": {
+      "fraction": 1.0,
+      "lower": 0.9925386444712004,
+      "passed": true,
+      "successes": 400
+    },
+    "health": "demonstrated",
+    "n": 400,
+    "paired": {
+      "both": 0,
+      "estimate": 0.0,
+      "lower": -0.009179804583665263,
+      "n": 400,
+      "neither": 400,
+      "nominal_only": 0,
+      "slow_only": 0,
+      "upper": 0.009179804583665263
+    },
+    "passed": true
+  },
+  "reasons": [
+    "Migration evidence relative to the 10-point margin: consequential.",
+    "C5 write health: demonstrated.",
+    "C5 outbox age criterion passed."
+  ],
+  "risks": {
+    "C23": {
+      "high_hold": {
+        "breaches": 329,
+        "lower": 0.7814588701331289,
+        "n": 400,
+        "risk": 0.8225,
+        "upper": 0.858689171475541
+      },
+      "high_promote": {
+        "breaches": 398,
+        "lower": 0.9820558553944145,
+        "n": 400,
+        "risk": 0.995,
+        "upper": 0.9993939021906778
+      },
+      "ref_hold": {
+        "breaches": 63,
+        "lower": 0.12319954923576408,
+        "n": 400,
+        "risk": 0.1575,
+        "upper": 0.1969635075671151
+      },
+      "ref_promote": {
+        "breaches": 219,
+        "lower": 0.49727418244859745,
+        "n": 400,
+        "risk": 0.5475,
+        "upper": 0.5970179591839688
+      }
+    },
+    "C4": {
+      "hold": {
+        "breaches": 400,
+        "lower": 0.9908201954163347,
+        "n": 400,
+        "risk": 1.0,
+        "upper": 1.0
+      },
+      "promote": {
+        "breaches": 400,
+        "lower": 0.9908201954163347,
+        "n": 400,
+        "risk": 1.0,
+        "upper": 1.0
+      },
+      "ruby": {
+        "breaches": 400,
+        "lower": 0.9908201954163347,
+        "n": 400,
+        "risk": 1.0,
+        "upper": 1.0
+      }
+    },
+    "C5": {
+      "nominal": {
+        "breaches": 0,
+        "lower": 0.0,
+        "n": 400,
+        "risk": 0.0,
+        "upper": 0.009179804583665263
+      },
+      "slow": {
+        "breaches": 0,
+        "lower": 0.0,
+        "n": 400,
+        "risk": 0.0,
+        "upper": 0.009179804583665263
+      }
+    }
+  },
+  "validation_passed": true,
+  "verdict": "GO"
+}
