@@ -2,14 +2,24 @@ import json
 
 import pytest
 
-from telemetry_sufficiency import PILOT, custody
+from telemetry_sufficiency import PILOT, custody, parquet_evidence
 from telemetry_sufficiency.report import verified_verdict
 from telemetry_sufficiency.scoring import score
 from telemetry_sufficiency.tests.test_scoring import protected_rows
 
 
+@pytest.fixture(scope="module")
+def pilot_inventory():
+    from experiments.compare import inventory_receipt
+
+    return inventory_receipt(PILOT / "results/frozen")
+
+
 @pytest.fixture
-def evidence(tmp_path):
+def evidence(tmp_path, pilot_inventory, monkeypatch):
+    from experiments import compare
+
+    monkeypatch.setattr(compare, "inventory_receipt", lambda _: pilot_inventory)
     # Synthetic paired outcomes with all four cells equally frequent in every stratum.
     rows = protected_rows()
     selected = {"demand": "current", "increment": "current"}
@@ -30,8 +40,22 @@ def evidence(tmp_path):
         claim["counts"] = {k: v * 100 for k, v in claim["counts"].items()}
     custody.save(tmp_path / "scores.json", scores)
     custody.save(tmp_path / "predictor-lock.json", dict(selected=selected))
-    ledger = tmp_path / "protected/replay-audit.jsonl.gz"
-    custody.write_table(ledger, [{"key": "fixture"}])
+    ledger = parquet_evidence.write_replays(
+        tmp_path / "protected",
+        [
+            dict(
+                key="fixture",
+                receipt=dict(
+                    partition="protected",
+                    condition="reference",
+                    index=0,
+                    admissions=1,
+                    branches=4,
+                    replay_digest="fixture",
+                ),
+            )
+        ],
+    )
     audit = dict(
         verified=True,
         protected_roots=1200,
@@ -49,7 +73,8 @@ def evidence(tmp_path):
     custody.save(
         tmp_path / "pilot-reproduction.json",
         dict(
-            custody.read(original),
+            pilot_inventory,
+            reproduction_elapsed_s=custody.read(original)["reproduction_elapsed_s"],
             verdict="GO",
             pilot_revision="bb20ebe",
             original_receipt=custody.file_hash(original),
@@ -165,3 +190,13 @@ def test_report_interprets_retained_diagnostics(evidence):
     assert "100.0%" in text
     assert "surprise" in text and "frozen" in text
     assert "power" in text and "floor" in text
+
+
+def test_fresh_report_rejects_original_transport_receipt(evidence):
+    original = PILOT / "results/frozen/summary/clean-reproduction.json"
+    path = evidence / "pilot-reproduction.json"
+    old = custody.read(path)
+    old.pop("format")
+    custody.save(path, old | custody.read(original))
+    with pytest.raises(ValueError, match="fresh study"):
+        verified_verdict(evidence)

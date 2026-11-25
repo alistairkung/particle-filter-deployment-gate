@@ -16,10 +16,13 @@ def reproduce(receipt):
     from .workflow import attempt
 
     receipt = Path(receipt).resolve()
-    if receipt.is_relative_to(PILOT):
-        raise ValueError("Study output path inside frozen pilot")
+    from .archive import historical, protect_destination
+
+    protect_destination(receipt)
     if receipt.name != "pilot-reproduction.json":
         raise ValueError("Use the run directory's pilot-reproduction.json")
+    if historical(receipt.parent):
+        raise ValueError("Use a fresh run directory for pilot reproduction")
     started = time.time_ns()
     archive = receipt.parent / "failures" / str(started)
     with attempt(receipt.parent, "reproduce", started=started) as manifest:
@@ -39,7 +42,6 @@ def _compare_fresh_pilot(receipt, output):
     from experiments.compare import compare
 
     frozen = PILOT / "results/frozen"
-    original = read(frozen / "summary/clean-reproduction.json")
     commands = reproduction_commands(output)
     environment = dict(
         os.environ, PYTHONDONTWRITEBYTECODE="1", PYTEST_ADDOPTS="-p no:cacheprovider"
@@ -49,14 +51,22 @@ def _compare_fresh_pilot(receipt, output):
             [sys.executable, "-m", *command], cwd=PILOT, check=True, env=environment
         )
     result = compare(frozen, output)
-    for field in ("inventory_sha256", "files_compared", "signature"):
-        if result[field] != original[field]:
-            raise ValueError(f"Frozen comparison receipt differs on {field}")
     verdict = read(output / "summary/verdict.json")["verdict"]
     if verdict != "GO":
         raise ValueError("Frozen pilot verdict changed")
     subprocess.run(
-        ["git", "diff", "--exit-code", "bb20ebe", "--", "."], cwd=PILOT, check=True
+        [
+            "git",
+            "diff",
+            "--exit-code",
+            "bb20ebe",
+            "--",
+            "configs",
+            "simulator",
+            "requirements.lock",
+        ],
+        cwd=PILOT,
+        check=True,
     )
     comparison = dict(
         result,

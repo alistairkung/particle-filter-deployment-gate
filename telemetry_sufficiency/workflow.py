@@ -11,7 +11,7 @@ import sys
 import time
 
 from . import PILOT
-from . import custody as c
+from . import custody as c, parquet_evidence as evidence
 
 HERE = Path(__file__).resolve().parent
 STAGES = ("validate", "develop", "lock", "evaluate", "audit", "report")
@@ -24,6 +24,7 @@ def study_contract():
         HERE / "IMPLEMENTATION_SPEC.md",
         PILOT / "configs/pilot.toml",
         PILOT / "requirements.lock",
+        HERE.parent / "requirements-storage.lock",
     ]
     source += sorted((PILOT / "simulator").glob("*.py")) + sorted(
         (PILOT / "experiments").glob("*.py")
@@ -34,8 +35,12 @@ def study_contract():
 def environment():
     dependencies = [
         s.split("==")[0]
-        for s in (PILOT / "requirements.lock").read_text().splitlines()
-        if s
+        for lockfile in (
+            PILOT / "requirements.lock",
+            HERE.parent / "requirements-storage.lock",
+        )
+        for s in lockfile.read_text().splitlines()
+        if "==" in s and not s.startswith("#")
     ]
     return {
         "python": platform.python_version(),
@@ -127,6 +132,12 @@ def attempt(run, stage, *, started=None):
                         readiness.unlink(missing_ok=True)
                 manifest["completed"].pop("report", None)
             yield manifest
+            if stage in manifest["completed"]:
+                verify_files(run, manifest["completed"][stage])
+                if stage in ("develop", "evaluate"):
+                    # A crash during cleanup leaves verifiable tables and a resumable run.
+                    c.save(path, manifest)
+                    _clear_root_markers(run, stage)
         except BaseException as exc:
             archive_snapshot(archive, incoming)
             # A failing validation may have produced fresh diagnostic evidence.
@@ -180,6 +191,17 @@ def attempt(run, stage, *, started=None):
             c.save(path, manifest)
 
 
+def _clear_root_markers(run, stage):
+    from .archive import protect_destination
+
+    partition = "development" if stage == "develop" else "protected"
+    for root in roots(partition):
+        marker = run / "work" / partition / (root["key"] + ".json")
+        if marker.exists():
+            protect_destination(marker)
+            marker.unlink()
+
+
 def _fixture_validation(run):
     command = [sys.executable, "-m", "pytest", "-q", str(HERE / "tests")]
     result = subprocess.run(
@@ -200,8 +222,7 @@ def _fixture_validation(run):
 
 
 def validate(run, manifest, workers):
-    inventory_path = run / "inventory.json"
-    c.save(inventory_path, c.inventory())
+    inventory_path = evidence.write(run, "inventory", c.inventory())
     manifest.update(
         study="outbox-sufficiency-v1",
         pilot_revision="bb20ebe",
@@ -239,8 +260,11 @@ def validate(run, manifest, workers):
     return [inventory_path, _fixture_validation(run)]
 
 
-def roots(partition):
-    return [row for row in c.inventory() if row["partition"] == partition]
+def roots(partition, run=None):
+    inventory = c.inventory()
+    if run is not None and list(evidence.rows(run, "inventory")) != inventory:
+        raise ValueError("Persisted root inventory differs from the frozen design")
+    return [row for row in inventory if row["partition"] == partition]
 
 
 def _one_root(task):
@@ -273,36 +297,33 @@ def _parallel(function, items, workers):
 def collect(run, rows, signature, workers):
     part = run / rows[0]["partition"]
     jobs = ((run, row, signature) for row in rows)
-    c.publish_partition(run, rows, _parallel(_one_root, jobs, workers))
-    paths = [part / "observations.jsonl.gz", part / "evaluator.jsonl.gz"]
+    paths = c.publish_partition(run, rows, _parallel(_one_root, jobs, workers))
     from .plant import example_trace
 
-    for row in rows:
-        if row["index"] == 0:
-            path = part / "examples" / (row["key"] + ".jsonl.gz")
-            trace = example_trace(row["condition"], row["partition"], 0, "hold")
-            c.write_table(path, [dict(key=row["key"], trace=trace)])
-            paths.append(path)
-    return paths
+    examples = (
+        dict(
+            key=row["key"],
+            trace=example_trace(row["condition"], row["partition"], 0, "hold"),
+        )
+        for row in rows
+        if row["index"] == 0
+    )
+    return [*paths, *evidence.write_examples(part, examples)]
 
 
 def develop(run, manifest, workers):
     from .methods import fit_development
 
-    rows = roots("development")
+    rows = roots("development", run)
     outputs = collect(
         run, rows, c.digest(c.canonical(manifest["source_hashes"])), workers
     )
     fitted = fit_development(list(c.labelled_rows(run, rows)), c.FOLD_SEED)
-    path = run / "development" / "fit.jsonl.gz"
-    c.write_table(path, [dict(key="development-fit", fit=fitted)])
-    return [*outputs, path]
+    return [*outputs, *evidence.write_fit(run / "development", fitted)]
 
 
 def get_fit(run):
-    return next(
-        c.read_table(run / "development" / "fit.jsonl.gz", [{"key": "development-fit"}])
-    )["fit"]
+    return evidence.read_fit(run / "development")
 
 
 def lock(run, manifest, workers):
@@ -314,7 +335,7 @@ def lock(run, manifest, workers):
             contracts=manifest["source_hashes"],
             selected=fitted["selected"],
             development=manifest["completed"]["develop"],
-            inventory=c.file_hash(run / "inventory.json"),
+            inventory=c.file_hash(run / "inventory.parquet"),
             fold_seed=c.FOLD_SEED,
             bootstrap_seed=c.BOOTSTRAP_SEED,
         ),
@@ -327,19 +348,18 @@ def write_predictions(run, rows, fitted):
 
     # Predictor receives only public measurements. Finish this table before reading the private table.
     directory = run / "protected"
-    path = directory / "predictions.jsonl.gz"
-    observations = c.read_table(directory / "observations.jsonl.gz", rows)
-    c.write_table(
-        path,
+    observations = evidence.histories(directory, rows)
+    path = evidence.write_predictions(
+        directory,
+        "predictions",
         (
             dict(key=v["key"], predictions=predict(fitted["models"], v["history"]))
             for v in observations
         ),
     )
-    private_path = directory / "evaluator-predictions.jsonl.gz"
 
     def evaluator_rows():
-        for record in c.read_table(directory / "evaluator.jsonl.gz", rows):
+        for record in evidence.private(directory, rows):
             truth = record["truth"]
             pred = predict_evaluator(
                 fitted["evaluator_models"],
@@ -349,13 +369,15 @@ def write_predictions(run, rows, fitted):
             )
             yield dict(key=record["key"], predictions=pred)
 
-    c.write_table(private_path, evaluator_rows())
+    private_path = evidence.write_predictions(
+        directory, "evaluator-predictions", evaluator_rows()
+    )
     return [path, private_path]
 
 
 def score_rows(run, rows):
-    public = c.read_table(run / "protected" / "predictions.jsonl.gz", rows)
-    evaluator = c.read_table(run / "protected" / "evaluator-predictions.jsonl.gz", rows)
+    public = evidence.predictions(run / "protected", "predictions", rows)
+    evaluator = evidence.predictions(run / "protected", "evaluator-predictions", rows)
     return [
         dict(
             row, predictions=dict(pub["predictions"], evaluator=private["predictions"])
@@ -382,7 +404,7 @@ def evaluate(run, manifest, workers):
                 status="consumed for readiness study; reserve fresh roots for future evaluation",
             ),
         )
-    rows = roots("protected")
+    rows = roots("protected", run)
     outputs = collect(run, rows, frozen_lock, workers)
     fitted = get_fit(run)
     predictions = write_predictions(run, rows, fitted)
@@ -403,13 +425,18 @@ def _audit_job(task):
 
 
 def audit(run, manifest, workers):
+    return compute_audit(run, run, workers)
+
+
+def compute_audit(run, output, workers):
     from .audit import audit_analysis
 
-    rows = roots("protected")
+    rows = roots("protected", run)
     jobs = zip(rows, c.records(run, rows), strict=True)
-    ledger = run / "protected" / "replay-audit.jsonl.gz"
-    c.write_table(ledger, _parallel(_audit_job, jobs, workers))
-    dev = list(c.labelled_rows(run, roots("development")))
+    ledger = evidence.write_replays(
+        output / "protected", _parallel(_audit_job, jobs, workers)
+    )
+    dev = list(c.labelled_rows(run, roots("development", run)))
     result = audit_analysis(
         dev,
         score_rows(run, rows),
@@ -418,7 +445,7 @@ def audit(run, manifest, workers):
         c.FOLD_SEED,
         c.BOOTSTRAP_SEED,
     )
-    path = run / "independent-audit.json"
+    path = output / "independent-audit.json"
     c.save(
         path,
         dict(
@@ -444,10 +471,15 @@ def execute(stage, run, workers):
         report=report,
     )
     run = Path(run).resolve()
-    if run.is_relative_to(PILOT):
-        raise ValueError("Study output path inside frozen pilot")
+    from .archive import historical, protect_destination
+
+    protect_destination(run)
     if workers < 1:
         raise ValueError("Workers must be positive")
+    if historical(run):
+        raise ValueError(
+            "Retained publication: use --output to regenerate audit or report in a separate directory"
+        )
     with attempt(run, stage) as manifest:
         if (
             manifest.get("source_hashes")

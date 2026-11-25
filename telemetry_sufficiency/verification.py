@@ -6,6 +6,7 @@ from pathlib import Path
 from .reproduce import reproduction_commands
 
 from . import CONDITIONS, PILOT
+from .archive import historical, legacy_digest
 from .custody import canonical, file_hash, read
 
 
@@ -27,14 +28,20 @@ def verify_report_evidence(run):
         comparisons_checked=77,
         lock=lock,
         scores=file_hash(run / "scores.json"),
-        replay_ledger=file_hash(run / "protected/replay-audit.jsonl.gz"),
+        replay_ledger=(
+            legacy_digest(run, "protected/replay-audit.jsonl.gz")
+            if historical(run)
+            else file_hash(run / "protected/replay-audit.parquet")
+        ),
     )
     if any(canonical(audit.get(k)) != canonical(v) for k, v in expected.items()):
         raise ValueError(
             "Independent scientific reconstruction missing, incomplete or stale"
         )
 
-    verify_pilot_receipt(read(run / "pilot-reproduction.json"))
+    verify_pilot_receipt(
+        read(run / "pilot-reproduction.json"), archived=historical(run)
+    )
     review = read(run / "verification-review.json")
     findings = review.get("findings")
     if isinstance(findings, str):
@@ -51,12 +58,21 @@ def verify_report_evidence(run):
     return verdict
 
 
-def verify_pilot_receipt(pilot):
+def verify_pilot_receipt(pilot, *, archived=False):
     frozen = PILOT / "results/frozen"
     original_path = frozen / "summary/clean-reproduction.json"
     original = read(original_path)
+    reference = original
+    if not archived:
+        if pilot.get("format") != "parquet-v1":
+            raise ValueError(
+                "A fresh study requires a canonical Parquet pilot reproduction"
+            )
+        from experiments.compare import inventory_receipt
+
+        reference = inventory_receipt(frozen)
     expected = {
-        k: original[k]
+        k: reference[k]
         for k in (
             "files_compared",
             "inventory_sha256",

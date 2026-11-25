@@ -1,0 +1,312 @@
+{
+  "canonical_files": {
+    "feasibility_pilot/results/frozen/evidence/C1/branches.parquet": {
+      "bytes": 10336,
+      "rows": 64,
+      "schema": "family: string not null\nroot: int32 not null\narm: string not null\nsignature: string not null\nsample_digest: string not null\nsample_values_sha256: string not null\ncut: string not null\ntrace: string\nbreach: int64 not null\ncensored: int64 not null\nscored: int64 not null\njava_arrivals: int64 not null\nexpected_load: double not null\nshare: double not null\nquery_rate: double not null",
+      "sha256": "1b2a39f8bc8e068d5be3778050b99eb198bb14eadf5ab3db3fcbf9ec09b66247"
+    },
+    "feasibility_pilot/results/frozen/evidence/C1/samples.parquet": {
+      "bytes": 917599,
+      "rows": 307972,
+      "schema": "family: string not null\nroot: int32 not null\narm: string not null\nsample_index: int32 not null\nelapsed_ns: int64 not null\njava: bool not null\ncensored: bool not null",
+      "sha256": "f1f77f578f4fd88e73cb4d3b17d81a4416ca35d5746c40babd52f08761be280b"
+    },
+    "feasibility_pilot/results/frozen/evidence/C1/windows.parquet": {
+      "bytes": 37251,
+      "rows": 256,
+      "schema": "family: string not null\nroot: int32 not null\narm: string not null\nwindow: int64 not null\neligible: int64 not null\nmisses: int64 not null\ncommits: int64 not null\nmarks: int64 not null\npending: int64 not null\npending_start: int64 not null\nqueue_start: int64 not null\nqueue: int64 not null\nbreach: bool not null\nempty: bool not null\nage_s: double not null\nage_start_s: double not null\nthroughput: double not null\nwork_start_s: double not null\nwork_s: double not null\nrealised_cohort_work_s: double not null\nrelay_owed_s: double not null\ndeferred_start_s: double not null\ndeferred_s: double not null\nutilisation: double not null\ndelay_p50_s: double\ndelay_p95_s: double\ndb: struct<claim: struct<visits: int64 not null, completed: int64 not null, waits: int64 not null, still (... 837 chars omitted) not null\n  child 0, claim: struct<visits: int64 not null, completed: int64 not null, waits: int64 not null, still_waiting: int6 (... 115 chars omitted) not null\n      child 0, visits: int64 not null\n      child 1, completed: int64 not null\n      child 2, waits: int64 not null\n      child 3, still_waiting: int64 not null\n      child 4, busy_s: double not null\n      child 5, offered_s: double not null\n      child 6, wait_sum_ms: double not null\n      child 7, wait_p95_ms: double\n  child 1, mark: struct<visits: int64 not null, completed: int64 not null, waits: int64 not null, still_waiting: int6 (... 115 chars omitted) not null\n      child 0, visits: int64 not null\n      child 1, completed: int64 not null\n      child 2, waits: int64 not null\n      child 3, still_waiting: int64 not null\n      child 4, busy_s: double not null\n      child 5, offered_s: double not null\n      child 6, wait_sum_ms: double not null\n      child 7, wait_p95_ms: double\n  child 2, query: struct<visits: int64 not null, completed: int64 not null, waits: int64 not null, still_waiting: int6 (... 115 chars omitted) not null\n      child 0, visits: int64 not null\n      child 1, completed: int64 not null\n      child 2, waits: int64 not null\n      child 3, still_waiting: int64 not null\n      child 4, busy_s: double not null\n      child 5, offered_s: double not null\n      child 6, wait_sum_ms: double not null\n      child 7, wait_p95_ms: double\n  child 3, write: struct<visits: int64 not null, completed: int64 not null, waits: int64 not null, still_waiting: int6 (... 115 chars omitted) not null\n      child 0, visits: int64 not null\n      child 1, completed: int64 not null\n      child 2, waits: int64 not null\n      child 3, still_waiting: int64 not null\n      child 4, busy_s: double not null\n      child 5, offered_s: double not null\n      child 6, wait_sum_ms: double not null\n      child 7, wait_p95_ms: double",
+      "sha256": "927cda306a91964fc3f9afe73db264d918598171dbfbac75f5c5150b9c052ecd"
+    },
+    "feasibility_pilot/results/frozen/evidence/C23/branches.parquet": {
+      "bytes": 99421,
+      "rows": 1600,
+      "schema": "family: string not null\nroot: int32 not null\narm: string not null\nsignature: string not null\nsample_digest: string not null\nsample_values_sha256: string not null\ncut: string not null\ntrace: string\nbreach: int64 not null\ncensored: int64 not null\nscored: int64 not null\njava_arrivals: int64 not null\nexpected_load: double not null\nshare: double not null\nquery_rate: double not null",
+      "sha256": "b9c29b43ecb28c012ca9b75f8b670c5074a69f39121ce607483a0840770491b9"
+    },
+    "feasibility_pilot/results/frozen/evidence/C23/samples.parquet": {
+      "bytes": 28228605,
+      "rows": 7657368,
+      "schema": "family: string not null\nroot: int32 not null\narm: string not null\nsample_index: int32 not null\nelapsed_ns: int64 not null\njava: bool not null\ncensored: bool not null",
+      "sha256": "e8a86fd51b204ee91a515be2502d5ce4194e878c1ea86406c09bbfb5259f81cd"
+    },
+    "feasibility_pilot/results/frozen/evidence/C23/windows.parquet": {
+      "bytes": 1199498,
+      "rows": 6400,
+      "schema": "family: string not null\nroot: int32 not null\narm: string not null\nwindow: int64 not null\neligible: int64 not null\nmisses: int64 not null\ncommits: int64 not null\nmarks: int64 not null\npending: int64 not null\npending_start: int64 not null\nqueue_start: int64 not null\nqueue: int64 not null\nbreach: bool not null\nempty: bool not null\nage_s: double not null\nage_start_s: double not null\nthroughput: double not null\nwork_start_s: double not null\nwork_s: double not null\nrealised_cohort_work_s: double not null\nrelay_owed_s: double not null\ndeferred_start_s: double not null\ndeferred_s: double not null\nutilisation: double not null\ndelay_p50_s: double\ndelay_p95_s: double\ndb: struct<claim: struct<visits: int64 not null, completed: int64 not null, waits: int64 not null, still (... 837 chars omitted) not null\n  child 0, claim: struct<visits: int64 not null, completed: int64 not null, waits: int64 not null, still_waiting: int6 (... 115 chars omitted) not null\n      child 0, visits: int64 not null\n      child 1, completed: int64 not null\n      child 2, waits: int64 not null\n      child 3, still_waiting: int64 not null\n      child 4, busy_s: double not null\n      child 5, offered_s: double not null\n      child 6, wait_sum_ms: double not null\n      child 7, wait_p95_ms: double\n  child 1, mark: struct<visits: int64 not null, completed: int64 not null, waits: int64 not null, still_waiting: int6 (... 115 chars omitted) not null\n      child 0, visits: int64 not null\n      child 1, completed: int64 not null\n      child 2, waits: int64 not null\n      child 3, still_waiting: int64 not null\n      child 4, busy_s: double not null\n      child 5, offered_s: double not null\n      child 6, wait_sum_ms: double not null\n      child 7, wait_p95_ms: double\n  child 2, query: struct<visits: int64 not null, completed: int64 not null, waits: int64 not null, still_waiting: int6 (... 115 chars omitted) not null\n      child 0, visits: int64 not null\n      child 1, completed: int64 not null\n      child 2, waits: int64 not null\n      child 3, still_waiting: int64 not null\n      child 4, busy_s: double not null\n      child 5, offered_s: double not null\n      child 6, wait_sum_ms: double not null\n      child 7, wait_p95_ms: double\n  child 3, write: struct<visits: int64 not null, completed: int64 not null, waits: int64 not null, still_waiting: int6 (... 115 chars omitted) not null\n      child 0, visits: int64 not null\n      child 1, completed: int64 not null\n      child 2, waits: int64 not null\n      child 3, still_waiting: int64 not null\n      child 4, busy_s: double not null\n      child 5, offered_s: double not null\n      child 6, wait_sum_ms: double not null\n      child 7, wait_p95_ms: double",
+      "sha256": "b41f2e49b28a4c7d2c82db01506181af89d7dea6baef433356116d68855136b7"
+    },
+    "feasibility_pilot/results/frozen/evidence/C4/branches.parquet": {
+      "bytes": 96949,
+      "rows": 1200,
+      "schema": "family: string not null\nroot: int32 not null\narm: string not null\nsignature: string not null\nsample_digest: string not null\nsample_values_sha256: string not null\ncut: string not null\ntrace: string\nbreach: int64 not null\ncensored: int64 not null\nscored: int64 not null\njava_arrivals: int64 not null\nexpected_load: double not null\nshare: double not null\nquery_rate: double not null",
+      "sha256": "677eb6441fb64b10b7faf8fe1ba30fc6a2cea9ca3a05358590f83548432dc395"
+    },
+    "feasibility_pilot/results/frozen/evidence/C4/samples.parquet": {
+      "bytes": 21538985,
+      "rows": 5747445,
+      "schema": "family: string not null\nroot: int32 not null\narm: string not null\nsample_index: int32 not null\nelapsed_ns: int64 not null\njava: bool not null\ncensored: bool not null",
+      "sha256": "f4453a285074731b50061137b530a40b5e5fdd88d85f29af68d0820d29d6ad42"
+    },
+    "feasibility_pilot/results/frozen/evidence/C4/windows.parquet": {
+      "bytes": 1034883,
+      "rows": 4800,
+      "schema": "family: string not null\nroot: int32 not null\narm: string not null\nwindow: int64 not null\neligible: int64 not null\nmisses: int64 not null\ncommits: int64 not null\nmarks: int64 not null\npending: int64 not null\npending_start: int64 not null\nqueue_start: int64 not null\nqueue: int64 not null\nbreach: bool not null\nempty: bool not null\nage_s: double not null\nage_start_s: double not null\nthroughput: double not null\nwork_start_s: double not null\nwork_s: double not null\nrealised_cohort_work_s: double not null\nrelay_owed_s: double not null\ndeferred_start_s: double not null\ndeferred_s: double not null\nutilisation: double not null\ndelay_p50_s: double\ndelay_p95_s: double\ndb: struct<claim: struct<visits: int64 not null, completed: int64 not null, waits: int64 not null, still (... 837 chars omitted) not null\n  child 0, claim: struct<visits: int64 not null, completed: int64 not null, waits: int64 not null, still_waiting: int6 (... 115 chars omitted) not null\n      child 0, visits: int64 not null\n      child 1, completed: int64 not null\n      child 2, waits: int64 not null\n      child 3, still_waiting: int64 not null\n      child 4, busy_s: double not null\n      child 5, offered_s: double not null\n      child 6, wait_sum_ms: double not null\n      child 7, wait_p95_ms: double\n  child 1, mark: struct<visits: int64 not null, completed: int64 not null, waits: int64 not null, still_waiting: int6 (... 115 chars omitted) not null\n      child 0, visits: int64 not null\n      child 1, completed: int64 not null\n      child 2, waits: int64 not null\n      child 3, still_waiting: int64 not null\n      child 4, busy_s: double not null\n      child 5, offered_s: double not null\n      child 6, wait_sum_ms: double not null\n      child 7, wait_p95_ms: double\n  child 2, query: struct<visits: int64 not null, completed: int64 not null, waits: int64 not null, still_waiting: int6 (... 115 chars omitted) not null\n      child 0, visits: int64 not null\n      child 1, completed: int64 not null\n      child 2, waits: int64 not null\n      child 3, still_waiting: int64 not null\n      child 4, busy_s: double not null\n      child 5, offered_s: double not null\n      child 6, wait_sum_ms: double not null\n      child 7, wait_p95_ms: double\n  child 3, write: struct<visits: int64 not null, completed: int64 not null, waits: int64 not null, still_waiting: int6 (... 115 chars omitted) not null\n      child 0, visits: int64 not null\n      child 1, completed: int64 not null\n      child 2, waits: int64 not null\n      child 3, still_waiting: int64 not null\n      child 4, busy_s: double not null\n      child 5, offered_s: double not null\n      child 6, wait_sum_ms: double not null\n      child 7, wait_p95_ms: double",
+      "sha256": "29e5f2fc7b9be7a3ac4d1b401ba5b27b95da3ec7a7de6e4e420fd73ef4aebaa5"
+    },
+    "feasibility_pilot/results/frozen/evidence/C5/branches.parquet": {
+      "bytes": 66099,
+      "rows": 800,
+      "schema": "family: string not null\nroot: int32 not null\narm: string not null\nsignature: string not null\nsample_digest: string not null\nsample_values_sha256: string not null\ncut: string not null\ntrace: string\nbreach: int64 not null\ncensored: int64 not null\nscored: int64 not null\njava_arrivals: int64 not null\nexpected_load: double not null\nshare: double not null\nquery_rate: double not null",
+      "sha256": "e36709ff0840e9db278132eccec9eaad7bb602c3e12b9c7c11c7d084abe43c55"
+    },
+    "feasibility_pilot/results/frozen/evidence/C5/samples.parquet": {
+      "bytes": 14041201,
+      "rows": 3833748,
+      "schema": "family: string not null\nroot: int32 not null\narm: string not null\nsample_index: int32 not null\nelapsed_ns: int64 not null\njava: bool not null\ncensored: bool not null",
+      "sha256": "b5e0e4fa4caeb9dbcc23ba617c92d5f1e0bb0bb5b0a5768e02f647af0b19b3c1"
+    },
+    "feasibility_pilot/results/frozen/evidence/C5/windows.parquet": {
+      "bytes": 490007,
+      "rows": 3200,
+      "schema": "family: string not null\nroot: int32 not null\narm: string not null\nwindow: int64 not null\neligible: int64 not null\nmisses: int64 not null\ncommits: int64 not null\nmarks: int64 not null\npending: int64 not null\npending_start: int64 not null\nqueue_start: int64 not null\nqueue: int64 not null\nbreach: bool not null\nempty: bool not null\nage_s: double not null\nage_start_s: double not null\nthroughput: double not null\nwork_start_s: double not null\nwork_s: double not null\nrealised_cohort_work_s: double not null\nrelay_owed_s: double not null\ndeferred_start_s: double not null\ndeferred_s: double not null\nutilisation: double not null\ndelay_p50_s: double\ndelay_p95_s: double\ndb: struct<claim: struct<visits: int64 not null, completed: int64 not null, waits: int64 not null, still (... 837 chars omitted) not null\n  child 0, claim: struct<visits: int64 not null, completed: int64 not null, waits: int64 not null, still_waiting: int6 (... 115 chars omitted) not null\n      child 0, visits: int64 not null\n      child 1, completed: int64 not null\n      child 2, waits: int64 not null\n      child 3, still_waiting: int64 not null\n      child 4, busy_s: double not null\n      child 5, offered_s: double not null\n      child 6, wait_sum_ms: double not null\n      child 7, wait_p95_ms: double\n  child 1, mark: struct<visits: int64 not null, completed: int64 not null, waits: int64 not null, still_waiting: int6 (... 115 chars omitted) not null\n      child 0, visits: int64 not null\n      child 1, completed: int64 not null\n      child 2, waits: int64 not null\n      child 3, still_waiting: int64 not null\n      child 4, busy_s: double not null\n      child 5, offered_s: double not null\n      child 6, wait_sum_ms: double not null\n      child 7, wait_p95_ms: double\n  child 2, query: struct<visits: int64 not null, completed: int64 not null, waits: int64 not null, still_waiting: int6 (... 115 chars omitted) not null\n      child 0, visits: int64 not null\n      child 1, completed: int64 not null\n      child 2, waits: int64 not null\n      child 3, still_waiting: int64 not null\n      child 4, busy_s: double not null\n      child 5, offered_s: double not null\n      child 6, wait_sum_ms: double not null\n      child 7, wait_p95_ms: double\n  child 3, write: struct<visits: int64 not null, completed: int64 not null, waits: int64 not null, still_waiting: int6 (... 115 chars omitted) not null\n      child 0, visits: int64 not null\n      child 1, completed: int64 not null\n      child 2, waits: int64 not null\n      child 3, still_waiting: int64 not null\n      child 4, busy_s: double not null\n      child 5, offered_s: double not null\n      child 6, wait_sum_ms: double not null\n      child 7, wait_p95_ms: double",
+      "sha256": "99e184b31d1bd2339bd3356be06df465709edd58e3665d567208a8b64fbb4e5f"
+    },
+    "telemetry_sufficiency/results/v1/development/branches.parquet": {
+      "bytes": 218603,
+      "rows": 2400,
+      "schema": "key: string not null\nbranch: string not null\nbreach: int64 not null\nadmissions_digest: string not null\ncut_digest: string not null\nfuture_digest: string not null",
+      "sha256": "0fd4e025d407be3016be947a84596fe2d0f5dff8a4a9d4ec6284e2098b56b810"
+    },
+    "telemetry_sufficiency/results/v1/development/example-roots.parquet": {
+      "bytes": 3695,
+      "rows": 3,
+      "schema": "key: string not null\npartition: string not null\ncondition: string not null\nindex: int64 not null\nbranch: string not null\nphase: string not null\nack_due: int64\ncut_digest: string not null\nhorizon_ns: int64 not null",
+      "sha256": "8215228be7f6b2cb2ee5999ef119c4cd9e528bb1bff343a3a021acfcc211f66a"
+    },
+    "telemetry_sufficiency/results/v1/development/example-tapes.parquet": {
+      "bytes": 666377,
+      "rows": 23788,
+      "schema": "key: string not null\nphase: string not null\nordinal: int64 not null\ntick_ns: int64 not null\nsource: string not null\nidentity: int64 not null\nrouting_uniform: double\nbusiness_draw: double\nquery_work_ns: int64",
+      "sha256": "87a9c357a733a9ad53834666c35349dbe01b768d2b53dea9cc1c31073c1413c4"
+    },
+    "telemetry_sufficiency/results/v1/development/example-visits.parquet": {
+      "bytes": 1241863,
+      "rows": 58477,
+      "schema": "key: string not null\nordinal: int64 not null\nkind: int64 not null\nidentity: int64 not null\nqueued_ns: int64 not null\nstart_ns: int64 not null\nend_ns: int64 not null",
+      "sha256": "b3be7a5ad374a1baeb30e396984bb27d2b98952693abc0731819cb617ea45c71"
+    },
+    "telemetry_sufficiency/results/v1/development/example-writes.parquet": {
+      "bytes": 736470,
+      "rows": 21606,
+      "schema": "key: string not null\nordinal: int64 not null\nidentity: int64 not null\narrival: int64 not null\ndemand: int64 not null\neligible: bool not null\njava: bool not null\ncommit: int64\nclaim: int64\nack: int64\nmark: int64",
+      "sha256": "0256276f37418d308f8fde68c941c532f42212774f492c59524baf4ed8daf61e"
+    },
+    "telemetry_sufficiency/results/v1/development/history-index.parquet": {
+      "bytes": 25820,
+      "rows": 1200,
+      "schema": "key: string not null\nreadings: int64 not null",
+      "sha256": "381e9349653d0317ea12d8cb679b49787485a45e60dd71089997a7d3167caeef"
+    },
+    "telemetry_sufficiency/results/v1/development/models.parquet": {
+      "bytes": 18013,
+      "rows": 132,
+      "schema": "fold: int64 not null\nlevel: string not null\ntarget: string not null\nfeatures: list<element: string> not null\n  child 0, element: string\nmedians: list<element: double> not null\n  child 0, element: double\nmeans: list<element: double> not null\n  child 0, element: double\nscales: list<element: double> not null\n  child 0, element: double\nkind: string not null\nconverged: bool not null\niterations: int64 not null\nintercept: list<element: double> not null\n  child 0, element: double\ncoef: list<element: list<element: double>> not null\n  child 0, element: list<element: double>\n      child 0, element: double",
+      "sha256": "e0c869680ad9c643e5d81e81cdff05229250c29a7df609d86808d5ec4a91f0e7"
+    },
+    "telemetry_sufficiency/results/v1/development/observations.parquet": {
+      "bytes": 294816,
+      "rows": 14400,
+      "schema": "key: string not null\ninterval_start_ns: int64 not null\ninterval_end_ns: int64 not null\navailable_at_ns: int64 not null\npending_count: int64 not null\noldest_pending_age_s: double not null\npublication_throughput_per_s: double not null\ncompleted_delay_median_s: double",
+      "sha256": "341b2f121701fbbca116c9285cf4c7cadf7cb2a2b40cf8333b9b58bc3db7e1f5"
+    },
+    "telemetry_sufficiency/results/v1/development/oof-evaluator-predictions.parquet": {
+      "bytes": 57915,
+      "rows": 1200,
+      "schema": "key: string not null\nhold: double not null\npromote: double not null\nincrement: double not null",
+      "sha256": "baf64ace6fc919c8387e614885b220ba02e20c81407ec6703a366a52cf041a74"
+    },
+    "telemetry_sufficiency/results/v1/development/oof-predictions.parquet": {
+      "bytes": 283491,
+      "rows": 4800,
+      "schema": "key: string not null\nlevel: string not null\ndemand: double not null\nunfinished: double not null\ncondition: list<element: double> not null\n  child 0, element: double\nhold: double not null\npromote: double not null\nincrement: double not null",
+      "sha256": "c74478b9d9c94311590ae941518df7189f41350dde36d347c9b32d59a6dac138"
+    },
+    "telemetry_sufficiency/results/v1/development/oof.parquet": {
+      "bytes": 47259,
+      "rows": 1200,
+      "schema": "key: string not null\nfold: int64 not null\ntraining_hash: string not null\ncondition: string not null\ndemand: double not null\nunfinished: double not null\nhold: int64 not null\npromote: int64 not null",
+      "sha256": "3ced4a8d42b56d2b5a159c98cc275eee7c4fea9610f78294ffec7195351b30a2"
+    },
+    "telemetry_sufficiency/results/v1/development/selection.json": {
+      "bytes": 620,
+      "sha256": "da409d1f1d4930eff1ca49520bf31096040f2289d86ec8bfedf152c68c46fa83"
+    },
+    "telemetry_sufficiency/results/v1/development/targets.parquet": {
+      "bytes": 250314,
+      "rows": 1200,
+      "schema": "key: string not null\npartition: string not null\ncondition: string not null\nindex: int64 not null\ndemand: double not null\nunfinished: double not null\nquery_work_ns: int64 not null\nduration_ns: int64 not null\nqueued_ns: int64 not null\nactive_residual_ns: int64 not null\nphysical_digest: string not null\nprefix_digest: string not null\nhistory_digest: string not null\nstate_digest: string not null",
+      "sha256": "82fae08857890bcd42e0830aacdca944c5e7377fbe0ce67292a979326874712f"
+    },
+    "telemetry_sufficiency/results/v1/development/windows.parquet": {
+      "bytes": 42449,
+      "rows": 9600,
+      "schema": "key: string not null\nbranch: string not null\nwindow_index: int64 not null\neligible: int64 not null\nmisses: int64 not null",
+      "sha256": "a874df216baa946f80aa9a082a4a927c4148cd38f9139078f3cab242ee46b5d2"
+    },
+    "telemetry_sufficiency/results/v1/inventory.parquet": {
+      "bytes": 52695,
+      "rows": 2400,
+      "schema": "key: string not null\npartition: string not null\ncondition: string not null\nindex: int64 not null",
+      "sha256": "6da95d265b32930ef29b511dd5483735ccdda9ad5ed8cb030d4d0f8582e35f35"
+    },
+    "telemetry_sufficiency/results/v1/protected/branches.parquet": {
+      "bytes": 267253,
+      "rows": 3200,
+      "schema": "key: string not null\nbranch: string not null\nbreach: int64 not null\nadmissions_digest: string not null\ncut_digest: string not null\nfuture_digest: string not null",
+      "sha256": "ced8253a53a85deecaaef70c864a804cf8643edcfbbb3f109f828e477aa0bed2"
+    },
+    "telemetry_sufficiency/results/v1/protected/evaluator-predictions.parquet": {
+      "bytes": 58038,
+      "rows": 1200,
+      "schema": "key: string not null\nhold: double not null\npromote: double not null\nincrement: double not null",
+      "sha256": "115ac1e7787bc89b69ace83b3e9863c5f8e335ea7ffef03363cc4c1ab953a4cd"
+    },
+    "telemetry_sufficiency/results/v1/protected/example-roots.parquet": {
+      "bytes": 3769,
+      "rows": 3,
+      "schema": "key: string not null\npartition: string not null\ncondition: string not null\nindex: int64 not null\nbranch: string not null\nphase: string not null\nack_due: int64\ncut_digest: string not null\nhorizon_ns: int64 not null",
+      "sha256": "8c5c0ff691b019a5f5993ed68f7e2fda674a8a71df9c86a437b983480cde6b50"
+    },
+    "telemetry_sufficiency/results/v1/protected/example-tapes.parquet": {
+      "bytes": 661879,
+      "rows": 23746,
+      "schema": "key: string not null\nphase: string not null\nordinal: int64 not null\ntick_ns: int64 not null\nsource: string not null\nidentity: int64 not null\nrouting_uniform: double\nbusiness_draw: double\nquery_work_ns: int64",
+      "sha256": "fa0f280947669984ea3da24e2713863738080bff64b55a2fb99e34c124bf1064"
+    },
+    "telemetry_sufficiency/results/v1/protected/example-visits.parquet": {
+      "bytes": 1250387,
+      "rows": 58913,
+      "schema": "key: string not null\nordinal: int64 not null\nkind: int64 not null\nidentity: int64 not null\nqueued_ns: int64 not null\nstart_ns: int64 not null\nend_ns: int64 not null",
+      "sha256": "c7629e15bfdf3679cfc926a4cac76033b97c29ed990ca0bc4f48be5324a4b7b4"
+    },
+    "telemetry_sufficiency/results/v1/protected/example-writes.parquet": {
+      "bytes": 741519,
+      "rows": 21664,
+      "schema": "key: string not null\nordinal: int64 not null\nidentity: int64 not null\narrival: int64 not null\ndemand: int64 not null\neligible: bool not null\njava: bool not null\ncommit: int64\nclaim: int64\nack: int64\nmark: int64",
+      "sha256": "439f22ab809ba02b7c091b5873b8f867d8199e488c2699750e15616043048fdd"
+    },
+    "telemetry_sufficiency/results/v1/protected/history-index.parquet": {
+      "bytes": 25819,
+      "rows": 1200,
+      "schema": "key: string not null\nreadings: int64 not null",
+      "sha256": "5ef8346811b3747056cdddf41d339a25b01fb65b1f7a11d1c5d5314891c4a2e7"
+    },
+    "telemetry_sufficiency/results/v1/protected/observations.parquet": {
+      "bytes": 296505,
+      "rows": 14400,
+      "schema": "key: string not null\ninterval_start_ns: int64 not null\ninterval_end_ns: int64 not null\navailable_at_ns: int64 not null\npending_count: int64 not null\noldest_pending_age_s: double not null\npublication_throughput_per_s: double not null\ncompleted_delay_median_s: double",
+      "sha256": "da463315c45e93fd21e2e7274cc5455dbd39f30d3c014016574e43865b6e76e3"
+    },
+    "telemetry_sufficiency/results/v1/protected/predictions.parquet": {
+      "bytes": 279381,
+      "rows": 4800,
+      "schema": "key: string not null\nlevel: string not null\ndemand: double not null\nunfinished: double not null\ncondition: list<element: double> not null\n  child 0, element: double\nhold: double not null\npromote: double not null\nincrement: double not null",
+      "sha256": "ca78fd8307c8b1312ee49058dd544e33102c13d0fa3b6e0c1883d3c5243586de"
+    },
+    "telemetry_sufficiency/results/v1/protected/replay-audit.parquet": {
+      "bytes": 77603,
+      "rows": 1200,
+      "schema": "key: string not null\npartition: string not null\ncondition: string not null\nindex: int64 not null\nbranches: int64 not null\nadmissions: int64 not null\nreplay_digest: string not null",
+      "sha256": "f9003d1ee5275273e7a4b46e15995fb3ed63b791e1f0eac95564d2f1e8ef364d"
+    },
+    "telemetry_sufficiency/results/v1/protected/targets.parquet": {
+      "bytes": 250369,
+      "rows": 1200,
+      "schema": "key: string not null\npartition: string not null\ncondition: string not null\nindex: int64 not null\ndemand: double not null\nunfinished: double not null\nquery_work_ns: int64 not null\nduration_ns: int64 not null\nqueued_ns: int64 not null\nactive_residual_ns: int64 not null\nphysical_digest: string not null\nprefix_digest: string not null\nhistory_digest: string not null\nstate_digest: string not null",
+      "sha256": "e4f8bd47162e9dfdca86afee4ce1b2c85e678990329c0aeeba260be0064bf88a"
+    },
+    "telemetry_sufficiency/results/v1/protected/windows.parquet": {
+      "bytes": 46547,
+      "rows": 12800,
+      "schema": "key: string not null\nbranch: string not null\nwindow_index: int64 not null\neligible: int64 not null\nmisses: int64 not null",
+      "sha256": "299708cdd85c7976039593a33416ba3abefda95e92bb7f6d1a1d461d7b699c34"
+    }
+  },
+  "historical_evidence": {
+    "byte_identical": {
+      "feasibility_pilot/FEASIBILITY_REPORT.md": "5ff142fb2bf9db96114e0fc2da7d0f812dcd60764fd7c68c2124370254ff60ab",
+      "feasibility_pilot/IMPLEMENTATION_PLAN.md": "d23ab534422a39e838e90c6a76a697911b1e71f40c5c90671476674cb081fb0b",
+      "feasibility_pilot/SPEC.md": "6533463b94593d807c41c9f036e31ca10ebfa359bfc0d41e072b0a8fec372a0f",
+      "feasibility_pilot/configs/pilot.toml": "0e231a9284978e8d37350c8cfb25b7e6c10778f942c783dbe2c20816e640d450",
+      "feasibility_pilot/plots/breach-risks.png": "b8cf4cc55c5771b60d8479dc17c94fcc1cc0a1e9a5f0fc9b6796088473cf599e",
+      "feasibility_pilot/plots/latency-C1.png": "82d0e82341202d8d78ebef56f61b45aca42386945c01f9210311bfeccf75ea69",
+      "feasibility_pilot/plots/latency-C23.png": "45daefdcca7f1622c9becad5b6b7cafaf2a61cb14e661b1343a73ab1efb447c6",
+      "feasibility_pilot/plots/latency-C4.png": "b8773d20dcd2676108bccb84f7b168f9475315e1edf55ee8baef7f3bbcfcea15",
+      "feasibility_pilot/plots/latency-C5.png": "398b254b0d07e36f3007730523737e0d90e0e6cd15031fc496e529a554344b62",
+      "feasibility_pilot/plots/trace-C1.png": "4b1ccee1f2f127aa51128b41c1e7b595d3b29fac537867e08c4ffd74e40e3b68",
+      "feasibility_pilot/plots/trace-C23.png": "ec742942172edff0c2027b6e78e52399cf7ec7dac0dbe3942c6db5e0bb7b564c",
+      "feasibility_pilot/plots/trace-C4.png": "358f20137bb5f2292f9ed89bfdcd18445677ca6581b193ab9e5950566f958ad7",
+      "feasibility_pilot/plots/trace-C5.png": "d751ed7059390586fdc0af46d90272a62bc6946bbb9a0cb74f33beaad9c5c762",
+      "feasibility_pilot/requirements.lock": "21b8434e869ffedd46d6d33d1a21b5ac34bfa09fbdb35429678fcf8d6d439df3",
+      "feasibility_pilot/results/frozen/manifest.json": "55276b2edb1e8e0482f01b6935840e1b354fda74f3b2361fd46689d58d3e6d81",
+      "feasibility_pilot/results/frozen/pilot.toml": "0e231a9284978e8d37350c8cfb25b7e6c10778f942c783dbe2c20816e640d450",
+      "feasibility_pilot/results/frozen/summary/branch-diagnostics.csv": "61ea47d7db2815add97b258f3a6d7b23efa5dffe94f3ad1ed6fb347ba873b2b8",
+      "feasibility_pilot/results/frozen/summary/clean-reproduction.json": "cca66875db522d3a03f0a6080164384fe9bddb18b14782ec81596f949d4bb5cb",
+      "feasibility_pilot/results/frozen/summary/db-work.csv": "eb3e9e595c8d52735ad182441d7e5996e28f567d9d16fad7d58b5764919461a2",
+      "feasibility_pilot/results/frozen/summary/independent-audit.json": "c5ec76b0c6d71f5e661481d1eafe84c5c5fc722f8e03415ac475f1e82121e309",
+      "feasibility_pilot/results/frozen/summary/latency-by-route.csv": "95a050b3d0c993427ee340aa40bc27d42c3afcecd82158151086ad8921103b45",
+      "feasibility_pilot/results/frozen/summary/verdict.json": "953042a2b07a41cf1aa545b9d93e5eaf4350f5473d0da5a72e1742934d2fd2bf",
+      "feasibility_pilot/results/frozen/summary/window-diagnostics.csv": "6b7456a4f0d8420803bc0745c4c727fc9f95c04cbed4ed65be4cf921cd3bd930",
+      "feasibility_pilot/results/frozen/validation/checks.json": "8cfc735a61366063451dd2287e7b9f63db1580d3762acc3a53831963d0cebd7d",
+      "feasibility_pilot/results/frozen/validation/placebo.json": "f8e69a28ed51e029c5d7763b03133f85c5db4fe2ee2c74410d619da72d869780",
+      "feasibility_pilot/results/frozen/validation/queue.json": "4a17b0289739692927bde3f83346e4bd63c8f8cbd5cd506050a8f7f3c9e8d802",
+      "feasibility_pilot/results/frozen/validation/result.json": "4be20ac88e01ef1f9da4931f08010575db633b0ef80ae4d4894b44ba0338d7ba",
+      "feasibility_pilot/results/frozen/validation/workload-integrity.json": "a304f777f376f29202eb15cb854fd876bb4c3f5f325267bb156984324181b7ab",
+      "feasibility_pilot/results/review/frozen-comparison.json": "2c9b989b790c88601c61d5ba9e91f191f01a23df50d5287c8491b6fc00ab0495",
+      "feasibility_pilot/results/review/pre-fix-checks.json": "a3fda4a9db4da9c7cb767f11942791a69bb94a9822ff7d80da23bc46195be1da",
+      "feasibility_pilot/results/review/pre-fix-verdict.json": "7cbc7dd2b0292dbac7fb04cdc2b229f44480672a8d2b4c8e8dcdf959146fcd1a",
+      "telemetry_sufficiency/IMPLEMENTATION_SPEC.md": "a61baaf8582172c541b81325517618047a88f6275f7cd7b2711c0fabdd5eb536",
+      "telemetry_sufficiency/SCIENTIFIC_SPEC.md": "802442b1797590b5a4a4dc4177386717e964f8e78f6b28d068fe0b101803a601",
+      "telemetry_sufficiency/SPEC_REVIEW.md": "99966d3779c3bd7e84e7fdb508fa4c67eb01e1efb520162b8f88f38b1d776a0c",
+      "telemetry_sufficiency/results/v1/Experimental_Readiness_Report.md": "25ea1a1f9ae732f41caeabc0b4116c84b9b78ae2860d2ac8cbb3138010eeadfb",
+      "telemetry_sufficiency/results/v1/independent-audit.json": "ad1deb7db2580b5b19708dfcdc726f496ff61f85b6e71bf4a6ece741f92b91fc",
+      "telemetry_sufficiency/results/v1/manifest.json": "95bcad7fcf1fd103389d9ae22e6b5316c074861058002cd44a9af75c27f41b8d",
+      "telemetry_sufficiency/results/v1/pilot-reproduction.json": "2c5c136c8235d4c99f6f812d3c2528bb4b16644194324032cbe045e824b62cee",
+      "telemetry_sufficiency/results/v1/plots/action-calibration.png": "55de58acd830df6efa1c0c86ba861c11907f5b22ebab14ae1ac4ee7dc651645d",
+      "telemetry_sufficiency/results/v1/plots/information-claims.png": "7e11f70229932966b9db98e18ea45f6308d97356444c564de7938aa1cd898000",
+      "telemetry_sufficiency/results/v1/plots/physical-targets.png": "2f7999557d9a44c0a5cfbd8401cf2cf97f0fddb8069f33cb2b81dbdc8647370e",
+      "telemetry_sufficiency/results/v1/predictor-lock.json": "c184d8d30b15c02c4939b71563ac8e01990d2ad5e108e791b40c57c54a5d4914",
+      "telemetry_sufficiency/results/v1/protected-access.json": "ee0008769b862f897d9b0d4c33502e80526139797656e65a6d6d851eb2d60de3",
+      "telemetry_sufficiency/results/v1/readiness.json": "ca7df2ef8a3f985149920cfc2b6f5508ef3558f5ab5fc5e604ec754d32577e6b",
+      "telemetry_sufficiency/results/v1/scores.json": "c7f6b16cff70b86ec018cf377452eba2b86ae9f1513f9f75c1b3585c963e7852",
+      "telemetry_sufficiency/results/v1/validation.json": "f60cf690b2f40e5b459152b54d0693ef5608f588220051b2c159e4d4f493ef25",
+      "telemetry_sufficiency/results/v1/verification-review.json": "02e4142baea1943486d466887bcac1557625ae90e93f96f0f340b59fe585b7cd"
+    },
+    "replaced_files": 2434
+  },
+  "original_commits": {
+    "feasibility_pilot": "bb20ebed72471f43443c873a11b2ac6e32fbbc00",
+    "telemetry_sufficiency": "624541bae2405fe47a59a193a55482775a7e0d0a"
+  },
+  "result_directories": {
+    "feasibility_pilot/results/frozen": {
+      "current_bytes": 68707184,
+      "current_files": 26,
+      "original_bytes": 106897262,
+      "original_files": 2433
+    },
+    "telemetry_sufficiency/results/v1": {
+      "current_bytes": 8116542,
+      "current_files": 40,
+      "original_bytes": 6862756,
+      "original_files": 28
+    }
+  },
+  "status": "pass",
+  "tolerance": {
+    "derived_absolute": 1e-10,
+    "derived_relative": 1e-10,
+    "stored": "exact integers, booleans, strings, nulls and binary64 values; exact array order"
+  }
+}

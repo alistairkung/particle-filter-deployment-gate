@@ -1,0 +1,85 @@
+{
+  "comparisons_checked": 77,
+  "development_roots": 1200,
+  "locked_claims": {
+    "demand": {
+      "candidate": "history",
+      "constant": 0.18059553103641668,
+      "counts": {
+        "contention": 400,
+        "reference": 400
+      },
+      "gain": 0.000834329084552019,
+      "lower": 0.000725034024866807,
+      "n": 800,
+      "passes": true,
+      "prior_gain": 0.0009837079037145324,
+      "se": 5.576381022677841e-05
+    },
+    "increment": {
+      "candidate": "history",
+      "constant": 0.30833333333333335,
+      "counts": {
+        "contention": 400,
+        "publisher": 400,
+        "reference": 400
+      },
+      "gain": 0.0035912050955422283,
+      "lower": 0.0003259297423509502,
+      "n": 1200,
+      "passes": true,
+      "prior_gain": 0.0036356495399866838,
+      "se": 0.0016659874257625923
+    }
+  },
+  "original_record_counts": {
+    "development/evaluator.jsonl.gz": 1200,
+    "development/examples/6e5c3820a7df79aa1be38a4d6e066ded.jsonl.gz": 1,
+    "development/examples/738a43f734e540607e7748e1835f8fc6.jsonl.gz": 1,
+    "development/examples/d8839e2088dac0cb32e10a0a04fe8ab0.jsonl.gz": 1,
+    "development/fit.jsonl.gz": 1,
+    "development/observations.jsonl.gz": 1200,
+    "inventory.json": 2400,
+    "protected/evaluator-predictions.jsonl.gz": 1200,
+    "protected/evaluator.jsonl.gz": 1200,
+    "protected/examples/2e4cc9e6f96a191c319f05d92387cec7.jsonl.gz": 1,
+    "protected/examples/aeb53efb5c3a30eac5d62cfceb9cbe44.jsonl.gz": 1,
+    "protected/examples/d419654d31318f37ac706b16d1d773dc.jsonl.gz": 1,
+    "protected/observations.jsonl.gz": 1200,
+    "protected/predictions.jsonl.gz": 1200,
+    "protected/replay-audit.jsonl.gz": 1200
+  },
+  "parquet_rows": {
+    "development/branches": 2400,
+    "development/example-roots": 3,
+    "development/example-tapes": 23788,
+    "development/example-visits": 58477,
+    "development/example-writes": 21606,
+    "development/history-index": 1200,
+    "development/models": 132,
+    "development/observations": 14400,
+    "development/oof": 1200,
+    "development/oof-evaluator-predictions": 1200,
+    "development/oof-predictions": 4800,
+    "development/targets": 1200,
+    "development/windows": 9600,
+    "inventory": 2400,
+    "protected/branches": 3200,
+    "protected/evaluator-predictions": 1200,
+    "protected/example-roots": 3,
+    "protected/example-tapes": 23746,
+    "protected/example-visits": 58913,
+    "protected/example-writes": 21664,
+    "protected/history-index": 1200,
+    "protected/observations": 14400,
+    "protected/predictions": 4800,
+    "protected/replay-audit": 1200,
+    "protected/targets": 1200,
+    "protected/windows": 12800
+  },
+  "predictions_checked": 64800,
+  "protected_roots": 1200,
+  "replayed_admissions": 25491716,
+  "replayed_protected_branches": 3200,
+  "verdict": "READY"
+}

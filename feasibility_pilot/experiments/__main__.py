@@ -18,16 +18,19 @@ import tempfile
 import time
 
 from experiments.config import read_config
+from experiments.parquet import EVIDENCE_FORMAT
+from experiments.publications import retained, require_output
 from experiments.storage import (
     budgets,
     compute_root,
     digest,
     load_json,
-    read_root,
     save_json,
 )
 
 BASE = Path(__file__).resolve().parents[1]
+FROZEN = BASE / "results/frozen"
+FROZEN_REPORT = BASE / "FEASIBILITY_REPORT.md"
 
 
 def identity(config_path):
@@ -64,6 +67,7 @@ def git(*args):
 
 def new_manifest(config_path, c, signature, files):
     return dict(
+        evidence_format=EVIDENCE_FORMAT,
         signature=signature,
         input_digests=files,
         source_files=source_files(),
@@ -119,51 +123,85 @@ def incomplete_report(path, out, reason):
 
 
 def execute_scientific(c, out, signature, workers, manifest):
+    from experiments.migrate import consolidate
+    from experiments.parquet import iter_samples, read_records
+    from experiments.runner import arms
     from experiments.storage import root_paths
 
     validation = load_json(out / "validation/result.json")
     if not validation["passed"] or validation["signature"] != signature:
         raise ValueError("Scientific run requires successful matching validation")
-    tasks = [
-        (c, out, f, i, signature)
-        for f, count in budgets(c).items()
-        for i in range(count)
-    ]
-    counts = {f: 0 for f in budgets(c)}
+    pending = out / ".workers"
+    counts = {}
     try:
-        with ProcessPoolExecutor(workers) as pool:
-            for family, root in pool.map(compute_root, tasks, chunksize=2):
-                counts[family] += 1
-                if counts[family] % 100 == 0:
-                    print(f"{family}: {counts[family]} complete", flush=True)
+        for family, count in budgets(c).items():
+            partition = out / "evidence" / family
+            if partition.exists():
+                records = read_records(
+                    out,
+                    family,
+                    {a.name for a in arms(c, family)},
+                    count,
+                    signature,
+                    c.horizon // c.window,
+                )
+                for _ in iter_samples(out, family, records):
+                    pass
+            else:
+                tasks = ((c, pending, family, i, signature) for i in range(count))
+                with ProcessPoolExecutor(workers) as pool:
+                    for done, _ in enumerate(
+                        pool.map(compute_root, tasks, chunksize=2), 1
+                    ):
+                        if done % 100 == 0:
+                            print(f"{family}: {done} complete", flush=True)
+                try:
+                    consolidate(pending, out, c, family, signature)
+                except Exception:
+                    archive = out / "failures" / f"{time.time_ns()}-{family}-workers"
+                    archive.parent.mkdir(exist_ok=True)
+                    pending.rename(archive)
+                    raise
+            counts[family] = count
     finally:
         manifest["completed"] = {
-            f: sum(root_paths(out, f, i)[0].exists() for i in range(n))
+            f: counts[f]
+            if f in counts
+            else sum(root_paths(pending, f, i)[0].exists() for i in range(n))
             for f, n in budgets(c).items()
         }
+    if pending.exists():
+        shutil.rmtree(pending)
 
 
-def write_window_tables(out, roots):
-    import csv
+def validate_and_publish(c, out, workers, signature):
+    from experiments.migrate import consolidate
+    from experiments.validation import validate
 
-    directory = out / "windows"
-    directory.mkdir(exist_ok=True)
-    for family, records in roots.items():
-        with (directory / (family + ".csv")).open("w", newline="") as stream:
-            writer = None
-            for i, branches in enumerate(records):
-                for arm, branch in branches.items():
-                    for window in branch["windows"]:
-                        row = dict(root=i, arm=arm)
-                        row.update({k: v for k, v in window.items() if k != "db"})
-                        for k, data in window["db"].items():
-                            row.update(
-                                {k + "_" + key: value for key, value in data.items()}
-                            )
-                        if writer is None:
-                            writer = csv.DictWriter(stream, fieldnames=list(row), lineterminator="\n")
-                            writer.writeheader()
-                        writer.writerow(row)
+    with tempfile.TemporaryDirectory(prefix=".validation-", dir=out) as name:
+        work = Path(name)
+        complete = False
+        try:
+            validation = validate(c, work, workers)
+            if validation.get("placebo") and all(
+                row["passed"] for row in validation["placebo"]
+            ):
+                consolidate(work, out, c, "C1", signature, validation["placebo"])
+            complete = validation["passed"]
+        finally:
+            if not complete:
+                archive = out / "failures" / f"{time.time_ns()}-validation"
+                archive.parent.mkdir(exist_ok=True)
+                work.rename(archive)
+                work = archive
+            for path in (work / "validation").glob("*.json"):
+                (out / "validation").mkdir(exist_ok=True)
+                destination = out / "validation" / path.name
+                if complete:
+                    path.replace(destination)
+                else:
+                    shutil.copyfile(path, destination)
+    return validation
 
 
 def archive_conclusions(out, report_path=None):
@@ -197,6 +235,8 @@ def previous_publication(manifest, out):
     if not isinstance(record, dict) or not isinstance(record.get("path"), str):
         return None
     candidate = Path(record["path"]).resolve()
+    if retained(candidate):
+        return None
     if candidate.is_relative_to(BASE) or candidate.is_relative_to(out.resolve()):
         if candidate.is_file() and digest(candidate) == record.get("sha256"):
             return candidate
@@ -212,26 +252,39 @@ def archive_previous_report(out, prior, current):
     return False
 
 
-def render(c, out, signature, args, manifest):
+def render(c, out, signature, args, manifest, *, archived=False):
     from experiments.audit import audit
     from experiments.integrity import verify_scientific_controls
     from experiments.metrics import summarize
     from experiments.report import generate
+    from experiments.parquet import read_records
+    from experiments.runner import arms
 
     validation = load_json(out / "validation/result.json")
     if validation["signature"] != signature or not validation["passed"]:
         raise ValueError("The analytical or physical prerequisite did not pass.")
+
     roots = {
-        f: [read_root(out, c, f, i, signature) for i in range(n)]
+        f: read_records(
+            out, f, {a.name for a in arms(c, f)}, n, signature, c.horizon // c.window
+        )
         for f, n in budgets(c).items()
     }
-    write_window_tables(out, roots)
     integrity = verify_scientific_controls(c, out, roots)
-    save_json(out / "validation/workload-integrity.json", integrity)
+    integrity_path = out / "validation/workload-integrity.json"
+    if archived:
+        if load_json(integrity_path) != integrity:
+            raise ValueError(
+                "Reconstructed workload integrity differs from the archived pilot"
+            )
+    else:
+        save_json(integrity_path, integrity)
     controls_passed = validation["passed"] and integrity["passed"]
     summary = summarize(c, roots, controls_passed)
     reconstruction = audit(c, out, summary, controls_passed)
-    with tempfile.TemporaryDirectory(prefix="report-stage-", dir=out) as name:
+    with tempfile.TemporaryDirectory(
+        prefix="report-stage-", dir=None if archived else out
+    ) as name:
         stage = Path(name)
         staged_summary = stage / "summary"
         staged_plots = stage / "plots"
@@ -250,8 +303,18 @@ def render(c, out, signature, args, manifest):
             final_plots=args.plots,
             final_report=args.output,
         )
-        archive_conclusions(out, args.output)
-        staged_summary.replace(out / "summary")
+        for plot in staged_plots.iterdir():
+            destination = args.plots / plot.name
+            require_output(destination)
+            if destination.is_dir():
+                raise ValueError(f"Expected a plot file at {destination}")
+        if archived:
+            for table in staged_summary.iterdir():
+                if digest(table) != digest(out / "summary" / table.name):
+                    raise ValueError(f"Reconstructed summary differs for {table.name}")
+        else:
+            archive_conclusions(out, args.output)
+            staged_summary.replace(out / "summary")
         args.plots.mkdir(parents=True, exist_ok=True)
         for plot in staged_plots.iterdir():
             shutil.move(plot, args.plots / plot.name)
@@ -282,6 +345,25 @@ def main():
     if not __debug__:
         parser.error("Validation requires enabled invariant checks")
     config_path = out / "pilot.toml" if args.command == "report" else args.config
+    if args.command == "report":
+        require_output(args.plots)
+        require_output(args.output)
+        if args.output.is_dir():
+            parser.error("--output must name a report file")
+    if out.resolve() == FROZEN:
+        if args.command != "report":
+            parser.error(
+                "Use a separate output directory to reproduce the archived experiment"
+            )
+        manifest = load_json(out / "manifest.json")
+        signature, _ = identity(config_path)
+        if signature != manifest["signature"]:
+            raise ValueError(
+                "Scientific source or configuration differs from the archived pilot"
+            )
+        render(read_config(config_path), out, signature, args, manifest, archived=True)
+        return
+    require_output(out)
     with exclusive_output(out):
         path = out / "manifest.json"
         manifest = {}
@@ -319,9 +401,7 @@ def main():
             manifest["status"] = args.command + " in progress"
             save_json(path, manifest)
             if args.command == "validate":
-                from experiments.validation import validate
-
-                validation = validate(c, out, args.workers)
+                validation = validate_and_publish(c, out, args.workers, signature)
                 validation["signature"] = signature
                 save_json(out / "validation/result.json", validation)
                 if not validation["passed"]:

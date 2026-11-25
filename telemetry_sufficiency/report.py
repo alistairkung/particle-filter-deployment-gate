@@ -12,14 +12,14 @@ def verified_verdict(run):
     return verify_report_evidence(run)
 
 
-def _plots(run, scores):
+def _plots(run, scores, output):
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from .custody import inventory, labelled_rows
 
-    directory = run / "plots"
+    directory = output / "plots"
     directory.mkdir(exist_ok=True)
     rows = list(
         labelled_rows(run, [r for r in inventory() if r["partition"] == "protected"])
@@ -36,7 +36,10 @@ def _plots(run, scores):
             showfliers=False,
         )
         ax.set_ylabel(title)
-    fig.savefig(directory / "physical-targets.png", dpi=140)
+    atomic(
+        directory / "physical-targets.png",
+        lambda stream: fig.savefig(stream, format="png", dpi=140),
+    )
     plt.close(fig)
     fig, axes = plt.subplots(1, 2, figsize=(8, 3.6), layout="constrained")
     for ax, action in zip(axes, ("hold", "promote")):
@@ -58,7 +61,10 @@ def _plots(run, scores):
             ylim=(0, 1),
         )
     axes[-1].legend()
-    fig.savefig(directory / "action-calibration.png", dpi=140)
+    atomic(
+        directory / "action-calibration.png",
+        lambda stream: fig.savefig(stream, format="png", dpi=140),
+    )
     plt.close(fig)
     fig, axes = plt.subplots(1, 2, figsize=(8, 2.6), layout="constrained")
     for ax, claim in zip(axes, ("demand", "increment")):
@@ -71,26 +77,40 @@ def _plots(run, scores):
         )
         ax.margins(x=0.18)
     fig.suptitle("Score gain and simultaneous one-sided lower bound")
-    fig.savefig(directory / "information-claims.png", dpi=140)
+    atomic(
+        directory / "information-claims.png",
+        lambda stream: fig.savefig(stream, format="png", dpi=140),
+    )
     plt.close(fig)
-    return sorted(directory.glob("*.png"))
+    return [
+        directory / name
+        for name in (
+            "physical-targets.png",
+            "action-calibration.png",
+            "information-claims.png",
+        )
+    ]
 
 
-def report(run, manifest, workers):
+def report(run, manifest, workers, *, output=None):
+    output = run if output is None else output
     verdict = verified_verdict(run)
     scores = read(run / "scores.json")
-    figures = _plots(run, scores)
-    path = run / "Experimental_Readiness_Report.md"
+    figures = _plots(run, scores, output)
+    path = output / "Experimental_Readiness_Report.md"
     content = render_report(scores, verdict)
     atomic(path, lambda stream: stream.write(content.encode()))
-    readiness = run / "readiness.json"
+    readiness = output / "readiness.json"
     save(readiness, dict(verdict=verdict, stage="report"))
     return [
         path,
         readiness,
         *figures,
-        run / "verification-review.json",
-        run / "pilot-reproduction.json",
+        *(
+            [run / "verification-review.json", run / "pilot-reproduction.json"]
+            if output == run
+            else []
+        ),
     ]
 
 

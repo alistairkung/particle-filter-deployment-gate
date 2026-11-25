@@ -1,8 +1,10 @@
-from pathlib import Path
-
 """Acceptance examples for reports built from saved evidence."""
 
+from pathlib import Path
+import sys
+
 import numpy as np
+import pytest
 
 from experiments.report import latency_distribution
 
@@ -63,15 +65,12 @@ def test_report_displays_censored_ecdf_band_and_indeterminate_tail(tmp_path):
     from experiments.report import saved_latency_distributions
 
     branch = {"scored": 3, "censored": 1}
-    path = tmp_path / "samples" / "C5"
-    path.mkdir(parents=True)
-    np.savez(
-        path / "0000.npz",
-        slow_ns=[1_000_000, 2_000_000, 3_000_000],
-        slow_java=[False, True, False],
-        slow_censored=[False, True, False],
-    )
-    table, curve = saved_latency_distributions(tmp_path, "C5", "slow", [branch])
+    samples = {
+        "slow_ns": np.array([1_000_000, 2_000_000, 3_000_000]),
+        "slow_java": np.array([False, True, False]),
+        "slow_censored": np.array([False, True, False]),
+    }
+    table, curve = saved_latency_distributions("slow", [branch], [samples])
     assert table["pooled"]["censored"] == 1 and table["Java"]["p95_ms"] == {
         "lower": 2.0
     }
@@ -100,21 +99,29 @@ def test_rendered_report_carries_validation_and_both_independent_findings(tmp_pa
     from experiments.runner import run_root
 
     c = replace(read_config("configs/pilot.toml"), seed=456, warmup=1)
-    roots, samples_dir = {}, tmp_path / "samples"
+    from experiments.parquet import publish_family, read_records
+
+    roots = {}
     for family in ("C1", "C23", "C4", "C5"):
         branches, samples = run_root(c, family, 0)
-        roots[family] = [branches]
-        dest = samples_dir / family
-        dest.mkdir(parents=True)
-        np.savez(
-            dest / "0000.npz",
-            **{
-                arm + "_" + name: value
-                for arm, values in samples.items()
-                for name, value in zip(("ns", "java", "censored"), values)
-            },
+        record = dict(
+            root=0,
+            family=family,
+            signature="test",
+            sample_digest="test",
+            branches=branches,
+        )
+        arrays = {
+            arm + "_" + name: a
+            for arm, values in samples.items()
+            for name, a in zip(("ns", "java", "censored"), values, strict=True)
+        }
+        publish_family(tmp_path, family, [(record, arrays)])
+        roots[family] = read_records(
+            tmp_path, family, set(branches), 1, "test", c.horizon // c.window
         )
     validation = {
+        "signature": "test",
         "passed": True,
         "queue": [],
         "placebo": [{"arms": roots.pop("C1")[0], "passed": True}],
@@ -191,3 +198,39 @@ def test_rendered_report_carries_validation_and_both_independent_findings(tmp_pa
     ).exists()  # publication follows independent audit
     assert (tmp_path / "summary" / "window-diagnostics.csv").is_file()
     assert (tmp_path / "plots" / "trace-C5.png").is_file()
+
+
+@pytest.mark.parametrize("use_symlink", [False, True])
+def test_report_output_cannot_move_an_existing_directory(
+    tmp_path, monkeypatch, use_symlink
+):
+    from experiments.__main__ import main
+
+    destination = tmp_path / "published"
+    destination.mkdir()
+    sentinel = destination / "existing.txt"
+    sentinel.write_text("preserve")
+    output = destination
+    if use_symlink:
+        output = tmp_path / "alias"
+        output.symlink_to(destination, target_is_directory=True)
+    run = tmp_path / "run"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "experiments",
+            "report",
+            "--from",
+            str(run),
+            "--plots",
+            str(tmp_path / "plots"),
+            "--output",
+            str(output),
+        ],
+    )
+    with pytest.raises(SystemExit) as stopped:
+        main()
+    assert stopped.value.code == 2
+    assert sentinel.read_text() == "preserve"
+    assert not run.exists()

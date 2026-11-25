@@ -9,3 +9,17 @@ AIMS5701 studies whether transactional-outbox observations can inform a change i
 | 3 · Particle filtering and counterfactual forecasting | Planned. Compare action-risk forecasts against the existing simple baselines on fresh protected roots. [Simulator v1 promotion and freeze plan](docs/simulator-v1-promotion.md) |
 
 The telemetry study’s protected data have been inspected. Preserve entire root families in every split and reserve fresh independent roots for future evaluation.
+
+## Reproduce the milestones
+
+The [storage verification summary](evidence_migration/README.md) links the file inventories, typed schemas and independent equivalence receipts. To regenerate a report from the published Parquet tables, follow the [pilot instructions](feasibility_pilot/README.md) or the [telemetry instructions](telemetry_sufficiency/README.md). To check the migration itself, use a full Git checkout containing both original evidence commits. Historical Git objects remain part of the repository.
+
+For the original source files, extract the result directories into an empty directory with `git archive`. For example:
+
+```sh
+mkdir -p /tmp/aims5701-originals
+git archive bb20ebed72471f43443c873a11b2ac6e32fbbc00 feasibility_pilot/results/frozen | tar -x -C /tmp/aims5701-originals
+git archive 624541bae2405fe47a59a193a55482775a7e0d0a telemetry_sufficiency/results/v1 | tar -x -C /tmp/aims5701-originals
+```
+
+The historical manifests and receipts include original machine paths. The scientific protocol also cites a local Codex review discussion. The linked repository reports, recorded checks and portable run commands provide the evidence for a fresh checkout. Create the Python environment locally. Worker caches, run locks and scratch reproduction directories are disposable.

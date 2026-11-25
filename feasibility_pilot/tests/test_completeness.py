@@ -57,10 +57,10 @@ def test_identical_missing_root_file_fails_even_when_both_manifests_claim_comple
         save_json(path / "manifest.json", manifest)
         shutil.copyfile(config_path, path / "pilot.toml")
         for entry in expected_inventory(config):
-            if entry != Path("samples/C5/0000.npz"):
+            if entry != Path("evidence/C5/samples.parquet"):
                 (path / entry).parent.mkdir(parents=True, exist_ok=True)
                 (path / entry).write_bytes(b"placeholder")
-    with pytest.raises(ValueError, match="samples/C5/0000.npz"):
+    with pytest.raises(ValueError, match="evidence/C5/samples.parquet"):
         compare(first, second, config_path)
     manifest["completed"]["C4"] = 0
     save_json(first / "manifest.json", manifest)
@@ -167,3 +167,13 @@ def test_failed_report_to_new_path_also_invalidates_prior_publication(tmp_path, 
         main()
     assert all("MODIFY / inconclusive" in p.read_text() for p in (old, new))
     assert next((tmp_path / "history").glob("*/previous-publication.md")).read_text() == "old GO finding"
+
+
+def test_copy_of_frozen_run_cannot_archive_historical_report(tmp_path):
+    from experiments.__main__ import FROZEN_REPORT, previous_publication
+    from experiments.storage import digest
+
+    manifest = {
+        "published_report": {"path": str(FROZEN_REPORT), "sha256": digest(FROZEN_REPORT)}
+    }
+    assert previous_publication(manifest, tmp_path) is None

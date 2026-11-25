@@ -1,0 +1,99 @@
+{
+  "execution_specific_artifacts": {
+    "original_audit_sha256": "ad1deb7db2580b5b19708dfcdc726f496ff61f85b6e71bf4a6ece741f92b91fc",
+    "original_lock_sha256": "c184d8d30b15c02c4939b71563ac8e01990d2ad5e108e791b40c57c54a5d4914",
+    "pilot": "The canonical comparison covers 23 deterministic files. The original 2,430-file comparison receipt records the prior transport and is retained separately. A second fresh pilot output with the same 23-file inventory was checked for presentation. Its nine plots match exactly. Markdown differs only in relative link destinations.",
+    "pilot_identical_plots": 9,
+    "pilot_original_report_sha256": "5ff142fb2bf9db96114e0fc2da7d0f812dcd60764fd7c68c2124370254ff60ab",
+    "pilot_second_fresh_report_sha256": "29c25cf4f14422de36a6d43d131bd7239b25087cd52a06807496d4da39dea187",
+    "telemetry": "Fresh validation, source/runtime manifest, predictor lock, protected access, pilot reproduction, audit, and review receipts identify the new execution and storage representation. The scientific inputs, scores, rendered Markdown, readiness decision and three plots are byte-identical."
+  },
+  "passed": true,
+  "pilot": {
+    "by_area": {
+      "evidence": 12,
+      "summary": 6,
+      "validation": 5
+    },
+    "completed_roots": {
+      "C23": 400,
+      "C4": 400,
+      "C5": 400
+    },
+    "files_compared": 23,
+    "format": "parquet-v1",
+    "frozen_manifest": "55276b2edb1e8e0482f01b6935840e1b354fda74f3b2361fd46689d58d3e6d81",
+    "inventory_sha256": "504e442115bb17dd254143663556e31cfb98d65785633d3d585764a6e9c85520",
+    "original_receipt": "cca66875db522d3a03f0a6080164384fe9bddb18b14782ec81596f949d4bb5cb",
+    "passed": true,
+    "pilot_revision": "bb20ebe",
+    "signature": "cd98daa8867fdc350f9ad4d39f769594c1af2a15aa30e11b8023e33b092b36e7",
+    "verdict": "GO"
+  },
+  "receipt_version": 1,
+  "references": {
+    "pilot": "bb20ebed72471f43443c873a11b2ac6e32fbbc00",
+    "telemetry": "624541bae2405fe47a59a193a55482775a7e0d0a"
+  },
+  "scope": "Same-seed computational reproduction of both milestones from canonical-only inputs. Protected roots are the original experimental population.",
+  "source": {
+    "checkout_base": "e4cdfa5d45bd063d863b4e8c99b74bfa937ca8c8",
+    "note": "The isolated checkout included the in-progress Parquet readers and writers. Subsequent guards for archived outputs, stage finalization and pilot receipts were regression-tested separately.",
+    "pyarrow": "26.0.1",
+    "python": "3.14.0",
+    "study_contract_sha256": "fecab98a5494330bd22f43bcf3ca2fcceab57e692c6a4a673f6b126cd481eb3c"
+  },
+  "telemetry": {
+    "admissions_replayed": 25491716,
+    "canonical_parquet_files_compared": 26,
+    "development_roots": 1200,
+    "identical_parquet_inventory_sha256": "1de38b32fa2a2c20a085521b11a54ecf8fc20615ce965cca456a700f34ec6391",
+    "identical_plots": {
+      "plots/action-calibration.png": "55de58acd830df6efa1c0c86ba861c11907f5b22ebab14ae1ac4ee7dc651645d",
+      "plots/information-claims.png": "7e11f70229932966b9db98e18ea45f6308d97356444c564de7938aa1cd898000",
+      "plots/physical-targets.png": "2f7999557d9a44c0a5cfbd8401cf2cf97f0fddb8069f33cb2b81dbdc8647370e"
+    },
+    "identical_readiness_sha256": "ca7df2ef8a3f985149920cfc2b6f5508ef3558f5ab5fc5e604ec754d32577e6b",
+    "identical_replay_ledger_sha256": "f9003d1ee5275273e7a4b46e15995fb3ed63b791e1f0eac95564d2f1e8ef364d",
+    "identical_report_sha256": "25ea1a1f9ae732f41caeabc0b4116c84b9b78ae2860d2ac8cbb3138010eeadfb",
+    "identical_scores_sha256": "c7f6b16cff70b86ec018cf377452eba2b86ae9f1513f9f75c1b3585c963e7852",
+    "identical_selection_sha256": "da409d1f1d4930eff1ca49520bf31096040f2289d86ec8bfedf152c68c46fa83",
+    "inventory_digest_recipe": "SHA-256 over UTF-8 lines of relative POSIX path, space, lowercase file SHA-256, newline, sorted by path.",
+    "protected_branches_replayed": 3200,
+    "protected_roots": 1200,
+    "protected_seal_binds_lock": true,
+    "replay_and_scoring": {
+      "comparisons_checked": 77,
+      "development_roots": 1200,
+      "lock": "cc6aa8baecb69743385f48c8b2a04f28362b77c0d3791a015717d54b1980c411",
+      "predictions_checked": 64800,
+      "protected_roots": 1200,
+      "replay_ledger": "f9003d1ee5275273e7a4b46e15995fb3ed63b791e1f0eac95564d2f1e8ef364d",
+      "scores": "c7f6b16cff70b86ec018cf377452eba2b86ae9f1513f9f75c1b3585c963e7852",
+      "verdict": "READY",
+      "verified": true
+    },
+    "review": {
+      "audit": "21d238d0a369de07a6515b52ab555c6bedc851178a3d7042d3e7177f436e65d9",
+      "findings": [
+        "All 26 freshly generated Parquet tables, model selection and scores match the SHA-256 values of the independently verified frozen canonical evidence.",
+        "Public predictions were recomputed for all 1,200 protected roots using only the public model bundle and seven history fields. With file reads disabled during prediction, all four public forecast records per root agreed exactly.",
+        "The fresh source writes the public predictions from public history before constructing the private evaluator predictions. The protected-access receipt and independent audit both bind the fresh predictor lock.",
+        "The original and fresh protected replay tables match for all 3,200 branches and 25,491,716 admissions. The independent score audit verifies 64,800 forecasts and 77 comparisons and returns READY."
+      ],
+      "lock": "cc6aa8baecb69743385f48c8b2a04f28362b77c0d3791a015717d54b1980c411",
+      "passed": true
+    },
+    "review_sha256": "a286f707fe7909f36a80df147d9701624a8a7654c454d0f862895baa2b844532",
+    "stages": [
+      "validate",
+      "develop",
+      "lock",
+      "evaluate",
+      "audit",
+      "reproduce",
+      "report"
+    ],
+    "verdict": "READY"
+  }
+}
