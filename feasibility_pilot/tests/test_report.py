@@ -1,8 +1,10 @@
-from pathlib import Path
-
 """Acceptance examples for reports built from saved evidence."""
 
+from pathlib import Path
+import sys
+
 import numpy as np
+import pytest
 
 from experiments.report import latency_distribution
 
@@ -196,3 +198,39 @@ def test_rendered_report_carries_validation_and_both_independent_findings(tmp_pa
     ).exists()  # publication follows independent audit
     assert (tmp_path / "summary" / "window-diagnostics.csv").is_file()
     assert (tmp_path / "plots" / "trace-C5.png").is_file()
+
+
+@pytest.mark.parametrize("use_symlink", [False, True])
+def test_report_output_cannot_move_an_existing_directory(
+    tmp_path, monkeypatch, use_symlink
+):
+    from experiments.__main__ import main
+
+    destination = tmp_path / "published"
+    destination.mkdir()
+    sentinel = destination / "existing.txt"
+    sentinel.write_text("preserve")
+    output = destination
+    if use_symlink:
+        output = tmp_path / "alias"
+        output.symlink_to(destination, target_is_directory=True)
+    run = tmp_path / "run"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "experiments",
+            "report",
+            "--from",
+            str(run),
+            "--plots",
+            str(tmp_path / "plots"),
+            "--output",
+            str(output),
+        ],
+    )
+    with pytest.raises(SystemExit) as stopped:
+        main()
+    assert stopped.value.code == 2
+    assert sentinel.read_text() == "preserve"
+    assert not run.exists()

@@ -303,6 +303,11 @@ def render(c, out, signature, args, manifest, *, archived=False):
             final_plots=args.plots,
             final_report=args.output,
         )
+        for plot in staged_plots.iterdir():
+            destination = args.plots / plot.name
+            require_output(destination)
+            if destination.is_dir():
+                raise ValueError(f"Expected a plot file at {destination}")
         if archived:
             for table in staged_summary.iterdir():
                 if digest(table) != digest(out / "summary" / table.name):
@@ -343,6 +348,8 @@ def main():
     if args.command == "report":
         require_output(args.plots)
         require_output(args.output)
+        if args.output.is_dir():
+            parser.error("--output must name a report file")
     if out.resolve() == FROZEN:
         if args.command != "report":
             parser.error(
